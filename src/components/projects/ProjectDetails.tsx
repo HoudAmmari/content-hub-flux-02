@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CheckCircle2, Clock, Calendar, Edit, Plus, CheckSquare } from "lucide-react";
+import { CheckCircle2, Clock, Calendar, Edit, Plus, CheckSquare, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Project {
