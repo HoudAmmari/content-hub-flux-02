@@ -61,7 +61,8 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
   };
 
   const handleSave = () => {
-    // Here you would save the content to your database
+    // Aqui você salvaria o conteúdo no banco de dados
+    // Por exemplo: contentService.createContent ou contentService.updateContent
     console.log("Saving content:", {
       id: initialContent?.id || "new",
       title,
@@ -197,13 +198,14 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
         {editorTab === "preview" && (
           <div className="border rounded-md p-4 min-h-[200px] bg-white">
             {description ? (
-              <ReactMarkdown
-                className="prose max-w-none"
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              >
-                {description}
-              </ReactMarkdown>
+              <div className="prose max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {description}
+                </ReactMarkdown>
+              </div>
             ) : (
               <p className="text-muted-foreground">Prévia do conteúdo aparecerá aqui...</p>
             )}
