@@ -25,6 +25,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ContentEditor } from "@/components/content/ContentEditor";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface Card {
   id: string;
@@ -144,7 +147,7 @@ export function KanbanCard({ card }: KanbanCardProps) {
           </div>
           
           <p className="text-xs text-muted-foreground line-clamp-2">
-            {card.description}
+            {card.description.replace(/[#*`\[\]\-_]/g, '')}
           </p>
           
           <div className="flex flex-wrap gap-1">
@@ -224,7 +227,14 @@ export function KanbanCard({ card }: KanbanCardProps) {
             
             <div>
               <h4 className="font-medium mb-1">Descrição</h4>
-              <p className="text-muted-foreground">{card.description}</p>
+              <div className="prose max-w-none text-muted-foreground">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {card.description}
+                </ReactMarkdown>
+              </div>
             </div>
             
             <div>

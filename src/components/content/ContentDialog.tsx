@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, FileText, Instagram, Linkedin, Youtube } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface Content {
   id: string;
@@ -111,7 +114,14 @@ export function ContentDialog({ content, open, onOpenChange, onEdit }: ContentDi
           
           <div>
             <h4 className="font-medium">Descrição</h4>
-            <p className="text-muted-foreground">{content.description}</p>
+            <div className="prose max-w-none text-muted-foreground mt-2">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              >
+                {content.description}
+              </ReactMarkdown>
+            </div>
           </div>
           
           <div className="flex items-center text-sm text-muted-foreground">

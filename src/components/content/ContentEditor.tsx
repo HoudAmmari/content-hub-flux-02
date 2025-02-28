@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,13 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "lucide-react";
+import { Calendar, Bold, Italic, Link, List, ListOrdered, Quote, Heading2 } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Content {
   id: string;
@@ -44,6 +47,7 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
   );
   const [tags, setTags] = useState<string[]>(initialContent?.tags || []);
   const [tagInput, setTagInput] = useState("");
+  const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -71,6 +75,24 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
     onSave();
   };
 
+  const insertText = (before: string, after = "") => {
+    const textarea = document.getElementById("description") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = description.substring(start, end);
+    const newText = description.substring(0, start) + before + selectedText + after + description.substring(end);
+    
+    setDescription(newText);
+    
+    // Set cursor position after the inserted text
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length + selectedText.length + after.length, start + before.length + selectedText.length + after.length);
+    }, 0);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -85,15 +107,108 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
       </div>
 
       <div>
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Digite uma descrição para o conteúdo"
-          className="mt-1"
-          rows={4}
-        />
+        <div className="flex justify-between items-center mb-1">
+          <Label htmlFor="description">Descrição</Label>
+          <Tabs value={editorTab} onValueChange={(value) => setEditorTab(value as "write" | "preview")} className="w-auto">
+            <TabsList className="grid w-[200px] grid-cols-2">
+              <TabsTrigger value="write">Escrever</TabsTrigger>
+              <TabsTrigger value="preview">Visualizar</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {editorTab === "write" && (
+          <>
+            <div className="flex items-center gap-1 mb-2 bg-muted p-1 rounded-md">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("**", "**")}
+              >
+                <Bold className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("*", "*")}
+              >
+                <Italic className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("## ")}
+              >
+                <Heading2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("[", "](https://)")}
+              >
+                <Link className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("\n- ")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("\n1. ")}
+              >
+                <ListOrdered className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => insertText("\n> ")}
+              >
+                <Quote className="h-4 w-4" />
+              </Button>
+            </div>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Use markdown para formatar o conteúdo..."
+              className="w-full min-h-[200px] p-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+            />
+          </>
+        )}
+
+        {editorTab === "preview" && (
+          <div className="border rounded-md p-4 min-h-[200px] bg-white">
+            {description ? (
+              <ReactMarkdown
+                className="prose max-w-none"
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              >
+                {description}
+              </ReactMarkdown>
+            ) : (
+              <p className="text-muted-foreground">Prévia do conteúdo aparecerá aqui...</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
