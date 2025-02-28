@@ -11,7 +11,8 @@ export const contentService = {
       const result = await query('SELECT * FROM contents ORDER BY "dueDate" DESC');
       return result.rows.map(row => ({
         ...row,
-        tags: row.tags || []
+        tags: row.tags || [],
+        isEpic: row.isEpic || false
       }));
     } catch (error) {
       console.error('Erro ao buscar conteúdos:', error);
@@ -20,15 +21,43 @@ export const contentService = {
   },
 
   // Obter conteúdos por canal
-  async getContentsByChannel(channel: string): Promise<Content[]> {
+  async getContentsByChannel(channel: string, includeEpics: boolean = false): Promise<Content[]> {
     try {
-      const result = await query('SELECT * FROM contents WHERE channel = $1 ORDER BY "dueDate" DESC', [channel]);
+      let sql = 'SELECT * FROM contents WHERE channel = $1';
+      const params = [channel];
+      
+      if (!includeEpics) {
+        sql += ' AND ("isEpic" = false OR "isEpic" IS NULL)';
+      }
+      
+      sql += ' ORDER BY "dueDate" DESC';
+      
+      const result = await query(sql, params);
       return result.rows.map(row => ({
         ...row,
-        tags: row.tags || []
+        tags: row.tags || [],
+        isEpic: row.isEpic || false
       }));
     } catch (error) {
       console.error(`Erro ao buscar conteúdos do canal ${channel}:`, error);
+      throw error;
+    }
+  },
+
+  // Obter épicos por canal
+  async getEpicsByChannel(channel: string): Promise<Content[]> {
+    try {
+      const result = await query(
+        'SELECT * FROM contents WHERE channel = $1 AND "isEpic" = true ORDER BY "dueDate"',
+        [channel]
+      );
+      return result.rows.map(row => ({
+        ...row,
+        tags: row.tags || [],
+        isEpic: true
+      }));
+    } catch (error) {
+      console.error(`Erro ao buscar épicos do canal ${channel}:`, error);
       throw error;
     }
   },
@@ -42,7 +71,8 @@ export const contentService = {
       }
       return {
         ...result.rows[0],
-        tags: result.rows[0].tags || []
+        tags: result.rows[0].tags || [],
+        isEpic: result.rows[0].isEpic || false
       };
     } catch (error) {
       console.error(`Erro ao buscar conteúdo ${id}:`, error);
@@ -56,12 +86,13 @@ export const contentService = {
       const id = uuidv4();
       const now = new Date().toISOString();
       const result = await query(
-        'INSERT INTO contents (id, title, description, status, channel, tags, "dueDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-        [id, content.title, content.description, content.status, content.channel, content.tags, content.dueDate, now, now]
+        'INSERT INTO contents (id, title, description, status, channel, tags, "dueDate", "isEpic", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+        [id, content.title, content.description, content.status, content.channel, content.tags, content.dueDate, content.isEpic || false, now, now]
       );
       return {
         ...result.rows[0],
-        tags: result.rows[0].tags || []
+        tags: result.rows[0].tags || [],
+        isEpic: result.rows[0].isEpic || false
       };
     } catch (error) {
       console.error('Erro ao criar conteúdo:', error);
@@ -85,12 +116,13 @@ export const contentService = {
         channel: content.channel ?? existingContent.channel,
         tags: content.tags ?? existingContent.tags,
         dueDate: content.dueDate ?? existingContent.dueDate,
+        isEpic: content.isEpic ?? existingContent.isEpic,
         updatedAt: now
       };
 
       const result = await query(
-        'UPDATE contents SET title = $1, description = $2, status = $3, channel = $4, tags = $5, "dueDate" = $6, "updatedAt" = $7 WHERE id = $8 RETURNING *',
-        [updates.title, updates.description, updates.status, updates.channel, updates.tags, updates.dueDate, updates.updatedAt, id]
+        'UPDATE contents SET title = $1, description = $2, status = $3, channel = $4, tags = $5, "dueDate" = $6, "isEpic" = $7, "updatedAt" = $8 WHERE id = $9 RETURNING *',
+        [updates.title, updates.description, updates.status, updates.channel, updates.tags, updates.dueDate, updates.isEpic, updates.updatedAt, id]
       );
 
       if (result.rows.length === 0) {
@@ -99,7 +131,8 @@ export const contentService = {
 
       return {
         ...result.rows[0],
-        tags: result.rows[0].tags || []
+        tags: result.rows[0].tags || [],
+        isEpic: result.rows[0].isEpic || false
       };
     } catch (error) {
       console.error(`Erro ao atualizar conteúdo ${id}:`, error);

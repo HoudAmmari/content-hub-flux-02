@@ -9,6 +9,7 @@ export interface Content {
   channel: string;
   tags: string[];
   dueDate: string;
+  isEpic?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -41,6 +42,7 @@ export interface Channel {
   id: string;
   name: string;
   description?: string;
+  statuses: string[];
   createdAt?: string;
   updatedAt?: string;
 }

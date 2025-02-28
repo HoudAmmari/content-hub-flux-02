@@ -9,7 +9,10 @@ export const channelService = {
   async getAllChannels(): Promise<Channel[]> {
     try {
       const result = await query('SELECT * FROM channels ORDER BY name');
-      return result.rows;
+      return result.rows.map(row => ({
+        ...row,
+        statuses: row.statuses || ["backlog", "in_progress", "pending", "done"]
+      }));
     } catch (error) {
       console.error('Erro ao buscar canais:', error);
       throw error;
@@ -23,9 +26,29 @@ export const channelService = {
       if (result.rows.length === 0) {
         return null;
       }
-      return result.rows[0];
+      return {
+        ...result.rows[0],
+        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      };
     } catch (error) {
       console.error(`Erro ao buscar canal ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Obter um canal pelo nome
+  async getChannelByName(name: string): Promise<Channel | null> {
+    try {
+      const result = await query('SELECT * FROM channels WHERE name = $1', [name]);
+      if (result.rows.length === 0) {
+        return null;
+      }
+      return {
+        ...result.rows[0],
+        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar canal ${name}:`, error);
       throw error;
     }
   },
@@ -36,10 +59,13 @@ export const channelService = {
       const id = uuidv4();
       const now = new Date().toISOString();
       const result = await query(
-        'INSERT INTO channels (id, name, description, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [id, channel.name, channel.description || '', now, now]
+        'INSERT INTO channels (id, name, description, statuses, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [id, channel.name, channel.description || '', channel.statuses || ["backlog", "in_progress", "pending", "done"], now, now]
       );
-      return result.rows[0];
+      return {
+        ...result.rows[0],
+        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      };
     } catch (error) {
       console.error('Erro ao criar canal:', error);
       throw error;
@@ -58,19 +84,23 @@ export const channelService = {
       const updates = {
         name: channel.name ?? existingChannel.name,
         description: channel.description ?? existingChannel.description,
+        statuses: channel.statuses ?? existingChannel.statuses,
         updatedAt: now
       };
 
       const result = await query(
-        'UPDATE channels SET name = $1, description = $2, "updatedAt" = $3 WHERE id = $4 RETURNING *',
-        [updates.name, updates.description, updates.updatedAt, id]
+        'UPDATE channels SET name = $1, description = $2, statuses = $3, "updatedAt" = $4 WHERE id = $5 RETURNING *',
+        [updates.name, updates.description, updates.statuses, updates.updatedAt, id]
       );
 
       if (result.rows.length === 0) {
         return null;
       }
 
-      return result.rows[0];
+      return {
+        ...result.rows[0],
+        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      };
     } catch (error) {
       console.error(`Erro ao atualizar canal ${id}:`, error);
       throw error;

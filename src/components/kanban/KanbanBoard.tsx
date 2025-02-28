@@ -1,6 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
+import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { 
   Tabs, 
   TabsContent, 
@@ -16,131 +18,196 @@ import {
 } from "@/components/ui/select";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { Button } from "@/components/ui/button";
-import { FilterX, ListFilter, Plus } from "lucide-react";
+import { FilterX, ListFilter, Plus, Layers } from "lucide-react";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
 import { KanbanFilters } from "@/components/kanban/KanbanFilters";
 import { NewContentDialog } from "@/components/content/NewContentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Content, Channel } from "@/models/types";
+import { contentService } from "@/services/contentService";
+import { channelService } from "@/services/channelService";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
-// Sample data
-const channels = [
-  { id: "videos", name: "Vídeos Curtos" },
-  { id: "blog", name: "Blog" },
-  { id: "linkedin", name: "LinkedIn" },
-  { id: "youtube", name: "YouTube" },
-];
+interface KanbanBoardProps {
+  selectedChannelName?: string;
+}
 
-const columns = [
-  { id: "idea", name: "Ideia" },
-  { id: "writing", name: "Escrevendo" },
-  { id: "review", name: "Revisão" },
-  { id: "done", name: "Pronto" },
-];
-
-const mockCards = [
-  {
-    id: "1",
-    title: "Como criar um blog eficiente",
-    description: "Dicas práticas para manter um blog atualizado e relevante",
-    status: "idea",
-    channel: "blog",
-    tags: ["escrita", "conteúdo", "dicas"],
-    dueDate: "2023-06-25",
-  },
-  {
-    id: "2",
-    title: "Tendências de React em 2023",
-    description: "Um overview das principais novidades do React",
-    status: "writing",
-    channel: "blog",
-    tags: ["react", "frontend", "javascript"],
-    dueDate: "2023-06-28",
-  },
-  {
-    id: "3",
-    title: "Dicas de produtividade para dev",
-    description: "Como organizar seu tempo e entregar mais",
-    status: "review",
-    channel: "blog",
-    tags: ["produtividade", "carreira"],
-    dueDate: "2023-06-22",
-  },
-  {
-    id: "4",
-    title: "Tour pelo meu setup",
-    description: "Mostrando meu ambiente de trabalho",
-    status: "idea",
-    channel: "youtube",
-    tags: ["setup", "hardware"],
-    dueDate: "2023-06-30",
-  },
-  {
-    id: "5",
-    title: "Explicando Hooks em 60s",
-    description: "Guia rápido sobre React Hooks",
-    status: "writing",
-    channel: "videos",
-    tags: ["react", "tutorial", "rápido"],
-    dueDate: "2023-06-23",
-  },
-  {
-    id: "6",
-    title: "Vagas em tecnologia",
-    description: "Como está o mercado de trabalho atualmente",
-    status: "done",
-    channel: "linkedin",
-    tags: ["carreira", "mercado"],
-    dueDate: "2023-06-18",
-  },
-  {
-    id: "7",
-    title: "Clean Code em 5 passos",
-    description: "Princípios básicos para escrever código limpo",
-    status: "done",
-    channel: "videos",
-    tags: ["código", "boas práticas"],
-    dueDate: "2023-06-15",
-  },
-];
-
-export function KanbanBoard() {
-  const [cards, setCards] = useState(mockCards);
-  const [selectedChannel, setSelectedChannel] = useState("blog");
-  const [showFilters, setShowFilters] = useState(false);
-  const [openNewContent, setOpenNewContent] = useState(false);
+export function KanbanBoard({ selectedChannelName }: KanbanBoardProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  const [cards, setCards] = useState<Content[]>([]);
+  const [epics, setEpics] = useState<Content[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showEpics, setShowEpics] = useState(false);
+  const [openNewContent, setOpenNewContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleDragEnd = (cardId: string, newStatus: string) => {
-    setCards(
-      cards.map((card) =>
-        card.id === cardId ? { ...card, status: newStatus } : card
+  useEffect(() => {
+    fetchChannels();
+  }, []);
+
+  useEffect(() => {
+    if (channels.length > 0) {
+      // Se um nome de canal foi passado via props, use-o
+      if (selectedChannelName) {
+        const channel = channels.find(c => c.name.toLowerCase() === selectedChannelName.toLowerCase());
+        if (channel) {
+          setSelectedChannelId(channel.id);
+          setSelectedChannel(channel);
+        } else {
+          // Se não encontrar, use o primeiro canal
+          setSelectedChannelId(channels[0].id);
+          setSelectedChannel(channels[0]);
+        }
+      } else if (!selectedChannelId) {
+        // Caso contrário, use o primeiro canal
+        setSelectedChannelId(channels[0].id);
+        setSelectedChannel(channels[0]);
+      }
+    }
+  }, [channels, selectedChannelName]);
+
+  useEffect(() => {
+    if (selectedChannelId) {
+      fetchContents();
+    }
+  }, [selectedChannelId, showEpics]);
+
+  const fetchChannels = async () => {
+    try {
+      const data = await channelService.getAllChannels();
+      setChannels(data);
+    } catch (error) {
+      console.error("Erro ao buscar canais:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os canais.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchContents = async () => {
+    setIsLoading(true);
+    try {
+      if (!selectedChannel) return;
+      
+      // Buscar conteúdos regulares
+      const contentsData = await contentService.getContentsByChannel(selectedChannel.name);
+      setCards(contentsData);
+      
+      // Buscar épicos, se necessário
+      if (showEpics) {
+        const epicsData = await contentService.getEpicsByChannel(selectedChannel.name);
+        setEpics(epicsData);
+      } else {
+        setEpics([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar conteúdos:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os conteúdos.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+    
+    const { source, destination, draggableId } = result;
+    
+    // Se a origem e o destino são iguais, não faz nada
+    if (source.droppableId === destination.droppableId) return;
+    
+    // Atualiza a UI imediatamente para feedback instantâneo
+    setCards((prevCards) =>
+      prevCards.map((card) =>
+        card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
     
-    toast({
-      title: "Card atualizado",
-      description: "Status atualizado com sucesso.",
-    });
+    // Atualiza no banco de dados
+    try {
+      const cardToUpdate = cards.find(card => card.id === draggableId);
+      if (cardToUpdate) {
+        await contentService.updateContent(draggableId, {
+          status: destination.droppableId
+        });
+        
+        toast({
+          title: "Conteúdo atualizado",
+          description: "Status atualizado com sucesso.",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status.",
+        variant: "destructive",
+      });
+      
+      // Reverte a alteração na UI em caso de erro
+      setCards((prevCards) =>
+        prevCards.map((card) =>
+          card.id === draggableId ? { ...card, status: source.droppableId } : card
+        )
+      );
+    }
   };
 
-  const filteredCards = cards.filter(
-    (card) => card.channel === selectedChannel
-  );
+  const handleChannelChange = (channelId: string) => {
+    const channel = channels.find(c => c.id === channelId);
+    setSelectedChannelId(channelId);
+    setSelectedChannel(channel || null);
+  };
+
+  const handleShowEpicsChange = (show: boolean) => {
+    setShowEpics(show);
+  };
+
+  const getColumnCards = (status: string) => {
+    const columnCards = cards.filter((card) => card.status === status);
+    if (showEpics) {
+      const epicCards = epics.filter((epic) => epic.status === status);
+      return [...columnCards, ...epicCards];
+    }
+    return columnCards;
+  };
+
+  const getTranslatedStatus = (status: string) => {
+    return t(`kanban.${status}`) || status;
+  };
 
   const renderColumns = () => {
-    return columns.map((column) => (
+    if (!selectedChannel) return null;
+    
+    return selectedChannel.statuses.map((status) => (
       <KanbanColumn 
-        key={column.id} 
-        id={column.id} 
-        title={column.name} 
-        onDrop={(cardId) => handleDragEnd(cardId, column.id)}
+        key={status} 
+        id={status} 
+        title={getTranslatedStatus(status)} 
+        droppableId={status}
       >
-        {filteredCards
-          .filter((card) => card.status === column.id)
-          .map((card) => (
-            <KanbanCard key={card.id} card={card} />
-          ))}
+        {getColumnCards(status).map((card, index) => (
+          <KanbanCard 
+            key={card.id} 
+            card={card} 
+            index={index}
+            onUpdate={fetchContents}
+          />
+        ))}
       </KanbanColumn>
     ));
   };
@@ -150,11 +217,11 @@ export function KanbanBoard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <Select 
-            value={selectedChannel} 
-            onValueChange={setSelectedChannel}
+            value={selectedChannelId} 
+            onValueChange={handleChannelChange}
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Selecione um canal" />
+              <SelectValue placeholder={t("content.selectChannel")} />
             </SelectTrigger>
             <SelectContent>
               {channels.map((channel) => (
@@ -173,18 +240,37 @@ export function KanbanBoard() {
               className="gap-1"
             >
               {showFilters ? <FilterX className="h-4 w-4" /> : <ListFilter className="h-4 w-4" />}
-              <span>{showFilters ? "Limpar filtros" : "Filtros"}</span>
+              <span>{showFilters ? t("kanban.clearFilters") : t("kanban.filters")}</span>
             </Button>
           </div>
         </div>
         
-        <Button 
-          onClick={() => setOpenNewContent(true)}
-          className="gap-1"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Novo Conteúdo</span>
-        </Button>
+        <div className="flex gap-4 items-center">
+          {selectedChannel && selectedChannel.name.toLowerCase() === "youtube" && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-epics"
+                checked={showEpics}
+                onCheckedChange={handleShowEpicsChange}
+              />
+              <Label htmlFor="show-epics" className="flex items-center gap-1">
+                <Layers className="h-4 w-4" />
+                <span>{showEpics ? t("content.hideEpics") : t("content.showEpics")}</span>
+                <Badge className="ml-1 bg-purple-500/20 text-purple-700 hover:bg-purple-500/30">
+                  {epics.length}
+                </Badge>
+              </Label>
+            </div>
+          )}
+          
+          <Button 
+            onClick={() => setOpenNewContent(true)}
+            className="gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            <span>{t("content.newContent")}</span>
+          </Button>
+        </div>
       </div>
       
       {showFilters && <KanbanFilters />}
@@ -192,28 +278,40 @@ export function KanbanBoard() {
       <div className="mt-6">
         <Tabs defaultValue="kanban">
           <TabsList className="mb-4">
-            <TabsTrigger value="kanban">Kanban</TabsTrigger>
-            <TabsTrigger value="list">Lista</TabsTrigger>
+            <TabsTrigger value="kanban">{t("kanban.board")}</TabsTrigger>
+            <TabsTrigger value="list">{t("kanban.list")}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="kanban" className="mt-0">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-4 gap-4'}`}>
-              {renderColumns()}
-            </div>
+            {isLoading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                {t("general.loading")}
+              </div>
+            ) : (
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : `grid-cols-${Math.min(selectedChannel?.statuses.length || 4, 4)} gap-4`}`}>
+                  {renderColumns()}
+                </div>
+              </DragDropContext>
+            )}
           </TabsContent>
           
           <TabsContent value="list" className="mt-0">
             <div className="rounded-md border">
-              {/* List view implementation will be added later */}
               <div className="p-8 text-center text-muted-foreground">
-                Visualização em lista será implementada em breve.
+                {t("general.noResults")}
               </div>
             </div>
           </TabsContent>
         </Tabs>
       </div>
       
-      <NewContentDialog open={openNewContent} onOpenChange={setOpenNewContent} />
+      <NewContentDialog 
+        open={openNewContent} 
+        onOpenChange={setOpenNewContent} 
+        channel={selectedChannel}
+        onSuccess={fetchContents}
+      />
     </div>
   );
 }
