@@ -8,6 +8,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { CalendarView } from "@/components/calendar/CalendarView";
 import { ProjectsView } from "@/components/projects/ProjectsView";
 import { useIsMobile } from "@/hooks/use-mobile";
+// Notice we're not importing pg or any database libraries directly
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<"dashboard" | "kanban" | "calendar" | "projects">("dashboard");
