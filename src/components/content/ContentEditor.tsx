@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,31 +20,23 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Content {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  channel: string;
-  tags: string[];
-  dueDate: string;
-}
+import { Content } from "@/models/types";
 
 interface ContentEditorProps {
-  initialContent?: Content;
-  onSave: () => void;
+  card?: Content;
+  onSave: (content: Partial<Content>) => void;
+  onCancel?: () => void;
 }
 
-export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
-  const [title, setTitle] = useState(initialContent?.title || "");
-  const [description, setDescription] = useState(initialContent?.description || "");
-  const [channel, setChannel] = useState(initialContent?.channel || "blog");
-  const [status, setStatus] = useState(initialContent?.status || "idea");
+export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
+  const [title, setTitle] = useState(card?.title || "");
+  const [description, setDescription] = useState(card?.description || "");
+  const [channel, setChannel] = useState(card?.channel || "blog");
+  const [status, setStatus] = useState(card?.status || "idea");
   const [dueDate, setDueDate] = useState<Date | undefined>(
-    initialContent?.dueDate ? new Date(initialContent.dueDate) : undefined
+    card?.dueDate ? new Date(card.dueDate) : undefined
   );
-  const [tags, setTags] = useState<string[]>(initialContent?.tags || []);
+  const [tags, setTags] = useState<string[]>(card?.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
 
@@ -61,19 +52,17 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
   };
 
   const handleSave = () => {
-    // Aqui você salvaria o conteúdo no banco de dados
-    // Por exemplo: contentService.createContent ou contentService.updateContent
-    console.log("Saving content:", {
-      id: initialContent?.id || "new",
+    const contentToSave = {
+      id: card?.id,
       title,
       description,
       channel,
       status,
       dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : "",
       tags,
-    });
+    };
 
-    onSave();
+    onSave(contentToSave);
   };
 
   const insertText = (before: string, after = "") => {
@@ -314,9 +303,11 @@ export function ContentEditor({ initialContent, onSave }: ContentEditorProps) {
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
-        <Button variant="outline" onClick={onSave}>
-          Cancelar
-        </Button>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
         <Button onClick={handleSave}>Salvar</Button>
       </div>
     </div>
