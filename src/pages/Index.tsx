@@ -10,13 +10,27 @@ import { ProjectsView } from "@/components/projects/ProjectsView";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<"dashboard" | "kanban" | "calendar" | "projects">("dashboard");
+  const [selectedChannelName, setSelectedChannelName] = useState<string | undefined>(undefined);
+
+  const handleNavigate = (view: string, params?: any) => {
+    if (view === "kanban" && params?.channel) {
+      setSelectedChannelName(params.channel);
+    } else {
+      setSelectedChannelName(undefined);
+    }
+    
+    // Aqui precisamos converter o view para o tipo aceito por setCurrentView
+    if (view === "dashboard" || view === "kanban" || view === "calendar" || view === "projects") {
+      setCurrentView(view);
+    }
+  };
 
   const renderView = () => {
     switch (currentView) {
       case "dashboard":
         return <Dashboard />;
       case "kanban":
-        return <KanbanBoard />;
+        return <KanbanBoard selectedChannelName={selectedChannelName} />;
       case "calendar":
         return <CalendarView />;
       case "projects":
@@ -29,7 +43,7 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onNavigate={setCurrentView} currentView={currentView} />
+        <AppSidebar onNavigate={handleNavigate} currentView={currentView} />
         <div className="flex-1 flex flex-col">
           <AppHeader currentView={currentView} />
           <main className="flex-1 p-6 overflow-auto">

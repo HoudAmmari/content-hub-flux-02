@@ -1,25 +1,35 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ContentEditor } from "@/components/content/ContentEditor";
+import { Channel } from "@/models/types";
 
 interface NewContentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialDate?: string;
+  channel?: Channel | null;
+  onSuccess?: () => void;
 }
 
-export function NewContentDialog({ open, onOpenChange, initialDate }: NewContentDialogProps) {
+export function NewContentDialog({ open, onOpenChange, initialDate, channel, onSuccess }: NewContentDialogProps) {
   const initialContent = initialDate
     ? {
         id: "",
         title: "",
         description: "",
         status: "idea",
-        channel: "blog",
+        channel: channel?.name || "blog",
         tags: [],
         dueDate: initialDate,
       }
     : undefined;
+
+  const handleSave = () => {
+    onOpenChange(false);
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -29,7 +39,7 @@ export function NewContentDialog({ open, onOpenChange, initialDate }: NewContent
         </DialogHeader>
         <ContentEditor 
           initialContent={initialContent} 
-          onSave={() => onOpenChange(false)}
+          onSave={handleSave}
         />
       </DialogContent>
     </Dialog>

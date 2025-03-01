@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -268,7 +267,7 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
           </DialogHeader>
           <ContentEditor 
             card={card}
-            onSave={handleSaveContent}
+            onSave={(content) => handleSaveContent(content)}
             onCancel={() => setIsEditing(false)}
           />
         </DialogContent>
