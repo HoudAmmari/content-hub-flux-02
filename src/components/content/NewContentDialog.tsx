@@ -1,7 +1,10 @@
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ContentEditor } from "@/components/content/ContentEditor";
-import { Channel } from "@/models/types";
+import { Channel, Content } from "@/models/types";
+import { contentService } from "@/services/contentService";
+import { useToast } from "@/hooks/use-toast";
 
 interface NewContentDialogProps {
   open: boolean;
@@ -12,6 +15,9 @@ interface NewContentDialogProps {
 }
 
 export function NewContentDialog({ open, onOpenChange, initialDate, channel, onSuccess }: NewContentDialogProps) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
   const initialContent = initialDate
     ? {
         id: "",
@@ -24,13 +30,30 @@ export function NewContentDialog({ open, onOpenChange, initialDate, channel, onS
       }
     : undefined;
 
-  const handleSave = (content: any) => {
-    // Here you would save the content to the database
-    console.log("Saving new content:", content);
-    
-    onOpenChange(false);
-    if (onSuccess) {
-      onSuccess();
+  const handleSave = async (content: Partial<Content>) => {
+    setIsLoading(true);
+    try {
+      // Salvar o conteúdo no banco de dados usando o contentService
+      await contentService.createContent(content as Omit<Content, 'id'>);
+      
+      toast({
+        title: "Sucesso",
+        description: "Conteúdo criado com sucesso!",
+      });
+      
+      onOpenChange(false);
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("Erro ao criar conteúdo:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o conteúdo. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
