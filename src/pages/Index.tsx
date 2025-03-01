@@ -1,16 +1,18 @@
 
 import { useState } from "react";
-import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/app/AppHeader";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { CalendarView } from "@/components/calendar/CalendarView";
 import { ProjectsView } from "@/components/projects/ProjectsView";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<"dashboard" | "kanban" | "calendar" | "projects">("dashboard");
   const [selectedChannelName, setSelectedChannelName] = useState<string | undefined>(undefined);
+  const isMobile = useIsMobile();
 
   const handleNavigate = (view: string, params?: any) => {
     if (view === "kanban" && params?.channel) {
@@ -19,7 +21,7 @@ const Index = () => {
       setSelectedChannelName(undefined);
     }
     
-    // Aqui precisamos converter o view para o tipo aceito por setCurrentView
+    // Here we need to convert the view string to the type accepted by setCurrentView
     if (view === "dashboard" || view === "kanban" || view === "calendar" || view === "projects") {
       setCurrentView(view);
     }
@@ -43,7 +45,11 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onNavigate={handleNavigate} currentView={currentView} />
+        <AppSidebar 
+          isMobile={isMobile} 
+          currentView={currentView} 
+          onNavigate={handleNavigate}
+        />
         <div className="flex-1 flex flex-col">
           <AppHeader currentView={currentView} />
           <main className="flex-1 p-6 overflow-auto">
