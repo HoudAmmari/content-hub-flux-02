@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -267,7 +268,10 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
           </DialogHeader>
           <ContentEditor 
             card={card}
-            onSave={(content) => handleSaveContent(content)}
+            onSave={(content) => {
+              handleSaveContent(content);
+              return; // Explicitly return void to satisfy TypeScript
+            }}
             onCancel={() => setIsEditing(false)}
           />
         </DialogContent>
