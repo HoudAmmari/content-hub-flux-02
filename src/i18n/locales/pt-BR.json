@@ -1,4 +1,3 @@
-
 {
   "app_title": "ContentHub",
   "dashboard": "Dashboard",
@@ -72,5 +71,22 @@
   "success": "Sucesso",
   "warning": "Aviso",
   "error": "Erro",
-  "try_again": "Tentar novamente"
+  "try_again": "Tentar novamente",
+  "navigation": {
+    "channelManager": "Gerenciar Canais"
+  },
+  "channels": {
+    "manageChannels": "Gerenciar Canais",
+    "manageChannelsDescription": "Crie, edite e exclua canais e seus status",
+    "newChannel": "Novo Canal",
+    "editChannel": "Editar Canal",
+    "name": "Nome",
+    "description": "Descrição",
+    "noDescription": "Sem descrição",
+    "statuses": "Status",
+    "confirmDelete": "Tem certeza que deseja excluir este canal?",
+    "addStatus": "Adicionar Status",
+    "statusNamePlaceholder": "Nome do status",
+    "dragToReorder": "Arraste para reordenar os status"
+  }
 }

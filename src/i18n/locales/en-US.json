@@ -1,4 +1,3 @@
-
 {
   "app_title": "ContentHub",
   "dashboard": "Dashboard",
@@ -72,5 +71,22 @@
   "success": "Success",
   "warning": "Warning",
   "error": "Error",
-  "try_again": "Try Again"
+  "try_again": "Try Again",
+  "navigation": {
+    "channelManager": "Manage Channels"
+  },
+  "channels": {
+    "manageChannels": "Manage Channels",
+    "manageChannelsDescription": "Create, edit and delete channels and their statuses",
+    "newChannel": "New Channel",
+    "editChannel": "Edit Channel",
+    "name": "Name",
+    "description": "Description",
+    "noDescription": "No description",
+    "statuses": "Statuses",
+    "confirmDelete": "Are you sure you want to delete this channel?",
+    "addStatus": "Add Status",
+    "statusNamePlaceholder": "Status name",
+    "dragToReorder": "Drag to reorder statuses"
+  }
 }

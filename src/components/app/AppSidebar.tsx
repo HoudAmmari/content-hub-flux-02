@@ -1,208 +1,161 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { 
-  LayoutDashboard, 
-  Kanban, 
-  Calendar, 
-  FolderKanban, 
-  Settings, 
-  PlusCircle,
-  Users,
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Home,
+  LayoutDashboard,
+  ListChecks,
+  Calendar,
+  Newspaper,
+  Settings,
+  HelpCircle,
+  Plus,
   Layers
 } from "lucide-react";
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarFooter,
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarGroupLabel, 
-  SidebarHeader, 
-  SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem, 
-  SidebarTrigger 
-} from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Channel } from "@/models/types";
-import { channelService } from "@/services/channelService";
-import { useToast } from "@/hooks/use-toast";
+import { MainNavItem } from "@/types";
+import { NavLink } from "@/components/app/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ChannelDialog } from "@/components/channels/ChannelDialog";
+import { useToast } from "@/hooks/use-toast";
+import { channelService } from "@/services/channelService";
+import { Channel } from "@/models/types";
 
 interface AppSidebarProps {
-  onNavigate: (view: string, params?: any) => void;
-  currentView: string;
+  isMobile: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function AppSidebar({ onNavigate, currentView }: AppSidebarProps) {
+export function AppSidebar({ isMobile, onOpenChange }: AppSidebarProps) {
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
-  useEffect(() => {
-    fetchChannels();
-  }, []);
 
-  const fetchChannels = async () => {
-    setIsLoading(true);
-    try {
-      const data = await channelService.getAllChannels();
-      setChannels(data);
-    } catch (error) {
-      console.error("Erro ao buscar canais:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os canais.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateChannel = async (channelData: Omit<Channel, "id" | "createdAt" | "updatedAt">) => {
-    try {
-      await channelService.createChannel(channelData);
-      fetchChannels();
-    } catch (error) {
-      console.error("Erro ao criar canal:", error);
-      throw error;
-    }
-  };
-  
-  const navItems = [
+  const navigationItems: MainNavItem[] = [
+    {
+      title: t("navigation.home"),
+      href: "/",
+      icon: Home
+    },
     {
       title: t("navigation.dashboard"),
-      icon: LayoutDashboard,
-      view: "dashboard"
-    },
-    {
-      title: t("navigation.content"),
-      icon: Kanban,
-      view: "kanban"
-    },
-    {
-      title: t("navigation.calendar"),
-      icon: Calendar,
-      view: "calendar"
+      href: "/dashboard",
+      icon: LayoutDashboard
     },
     {
       title: t("navigation.projects"),
-      icon: FolderKanban,
-      view: "projects"
+      href: "/projects",
+      icon: ListChecks
     },
     {
-      title: t("navigation.channels"),
-      icon: Layers,
-      view: "channels"
-    }
+      title: t("navigation.calendar"),
+      href: "/calendar",
+      icon: Calendar
+    },
+    {
+      title: t("navigation.news"),
+      href: "/news",
+      icon: Newspaper
+    },
+    {
+      title: t("navigation.channelManager"),
+      href: "/channels/manage",
+      icon: Layers
+    },
   ];
 
-  const bottomItems = [
+  const settingsItems: MainNavItem[] = [
     {
       title: t("navigation.settings"),
-      icon: Settings,
-      view: "settings"
+      href: "/settings",
+      icon: Settings
+    },
+    {
+      title: t("navigation.help"),
+      href: "/help",
+      icon: HelpCircle
     }
   ];
 
-  // Determina se está visualizando um canal específico
-  const isViewingChannel = currentView === "kanban" && typeof currentView === "string";
+  const handleCreateChannel = async (channel: Omit<Channel, "id" | "createdAt" | "updatedAt">) => {
+    try {
+      await channelService.createChannel(channel);
+      toast({
+        title: "Sucesso",
+        description: "Canal criado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao criar canal:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o canal.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <Sidebar className="border-r border-border bg-muted/40 backdrop-blur-xl">
-      <SidebarHeader className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center">
-          <div className="font-semibold text-lg">ContentHub</div>
-        </div>
-        {isMobile && <SidebarTrigger />}
-      </SidebarHeader>
-      
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    className={cn(
-                      currentView === item.view ? "bg-accent text-accent-foreground" : "hover:bg-muted/80"
-                    )}
-                    onClick={() => onNavigate(item.view)}
-                  >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-6 py-2">{t("navigation.channels")}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {isLoading ? (
-                <div className="px-6 py-2 text-xs text-muted-foreground">
-                  {t("general.loading")}
-                </div>
-              ) : (
-                channels.map((channel) => (
-                  <SidebarMenuItem key={channel.id}>
-                    <SidebarMenuButton 
-                      className={cn(
-                        isViewingChannel && currentView === channel.name.toLowerCase() 
-                          ? "bg-accent text-accent-foreground" 
-                          : "hover:bg-muted/80"
-                      )}
-                      onClick={() => onNavigate("kanban", { channel: channel.name })}
-                    >
-                      <Kanban className="w-4 h-4 mr-3" />
-                      <span>{channel.name}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))
-              )}
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  className="text-muted-foreground hover:bg-muted/80"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  <PlusCircle className="w-4 h-4 mr-3" />
-                  <span>{t("navigation.newChannel")}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      
-      <SidebarFooter className="border-t px-6 py-4">
-        <SidebarMenu>
-          {bottomItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton className="hover:bg-muted/80">
-                <item.icon className="w-5 h-5 mr-3" />
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+    <Sheet open={isMobile} onOpenChange={onOpenChange}>
+      <SheetContent side="left" className="pr-0">
+        <SheetHeader className="space-y-2.5">
+          <SheetTitle>Content Hub</SheetTitle>
+          <SheetDescription>
+            Gerencie seu conteúdo de forma eficiente.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="py-4">
+          {navigationItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              className="px-4 py-2"
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              <span>{item.title}</span>
+            </NavLink>
           ))}
-        </SidebarMenu>
-      </SidebarFooter>
-
-      <ChannelDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSave={handleCreateChannel}
-      />
-    </Sidebar>
+        </div>
+        <Separator />
+        <div className="py-4">
+          {settingsItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              className="px-4 py-2"
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              <span>{item.title}</span>
+            </NavLink>
+          ))}
+        </div>
+        <Separator />
+        <div className="mt-4 px-4">
+          <ThemeToggle />
+        </div>
+        
+        <div className="mt-4 px-4">
+          <Button onClick={() => setOpenCreateDialog(true)} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("channels.newChannel")}
+          </Button>
+        </div>
+        
+        {/* Diálogo de criação de canal */}
+        <ChannelDialog
+          open={openCreateDialog}
+          onOpenChange={setOpenCreateDialog}
+          onSave={handleCreateChannel}
+        />
+      </SheetContent>
+    </Sheet>
   );
 }
