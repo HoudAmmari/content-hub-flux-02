@@ -24,7 +24,10 @@ export function NewContentDialog({ open, onOpenChange, initialDate, channel, onS
       }
     : undefined;
 
-  const handleSave = () => {
+  const handleSave = (content: any) => {
+    // Here you would save the content to the database
+    console.log("Saving new content:", content);
+    
     onOpenChange(false);
     if (onSuccess) {
       onSuccess();
@@ -38,7 +41,7 @@ export function NewContentDialog({ open, onOpenChange, initialDate, channel, onS
           <DialogTitle>Novo Conteúdo</DialogTitle>
         </DialogHeader>
         <ContentEditor 
-          initialContent={initialContent} 
+          card={initialContent} 
           onSave={handleSave}
         />
       </DialogContent>
