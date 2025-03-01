@@ -7,9 +7,10 @@ interface NavLinkProps {
   href: string;
   children: ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
-export function NavLink({ href, children, className }: NavLinkProps) {
+export function NavLink({ href, children, className, onClick }: NavLinkProps) {
   return (
     <RouterNavLink
       to={href}
@@ -22,6 +23,7 @@ export function NavLink({ href, children, className }: NavLinkProps) {
           className
         )
       }
+      onClick={onClick}
     >
       {children}
     </RouterNavLink>
