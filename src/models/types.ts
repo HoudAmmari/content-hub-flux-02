@@ -46,3 +46,14 @@ export interface Channel {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface NewsItem {
+  id: string;
+  source: string;
+  summarizedTitle: string;
+  summary: string;
+  url: string;
+  selected: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
