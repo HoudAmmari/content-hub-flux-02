@@ -19,7 +19,7 @@ export interface Project {
   title: string;
   description: string;
   progress: number;
-  status: "em_andamento" | "concluido" | "pausado";
+  status: "in_progress" | "completed" | "paused" | "canceled";
   deadline: string;
   tasks: number;
   completedTasks: number;

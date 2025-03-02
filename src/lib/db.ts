@@ -14,7 +14,7 @@ export const pool = new Pool({
 });
 
 // Helper function to execute queries
-export async function query(text: string, params?: any[]) {
+export async function query(text: string, params?: { [k: string] : string|number|boolean }[]) {
   const start = Date.now();
   const res = await pool.query(text, params);
   const duration = Date.now() - start;
