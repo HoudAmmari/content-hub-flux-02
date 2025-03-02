@@ -30,8 +30,8 @@ interface ContentEditorProps {
 
 export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   const [title, setTitle] = useState(card?.title || "");
-  const [content, setContent] = useState(card?.content || "");
-  const [channel, setChannel] = useState(card?.channelId || "blog");
+  const [description, setDescription] = useState(card?.description || "");
+  const [channel, setChannel] = useState(card?.channel || "blog");
   const [status, setStatus] = useState(card?.status || "idea");
   const [dueDate, setDueDate] = useState<Date | undefined>(
     card?.dueDate ? new Date(card.dueDate) : undefined
@@ -55,7 +55,7 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
     const contentToSave = {
       id: card?.id,
       title,
-      content: content,
+      description,
       channel,
       status,
       dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : "",
@@ -66,15 +66,15 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   };
 
   const insertText = (before: string, after = "") => {
-    const textarea = document.getElementById("content") as HTMLTextAreaElement;
+    const textarea = document.getElementById("description") as HTMLTextAreaElement;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = content.substring(start, end);
-    const newText = content.substring(0, start) + before + selectedText + after + content.substring(end);
+    const selectedText = description.substring(start, end);
+    const newText = description.substring(0, start) + before + selectedText + after + description.substring(end);
     
-    setContent(newText);
+    setDescription(newText);
     
     // Set cursor position after the inserted text
     setTimeout(() => {
@@ -98,7 +98,7 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
 
       <div>
         <div className="flex justify-between items-center mb-1">
-          <Label htmlFor="content">Descrição</Label>
+          <Label htmlFor="description">Descrição</Label>
           <Tabs value={editorTab} onValueChange={(value) => setEditorTab(value as "write" | "preview")} className="w-auto">
             <TabsList className="grid w-[200px] grid-cols-2">
               <TabsTrigger value="write">Escrever</TabsTrigger>
@@ -175,9 +175,9 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
               </Button>
             </div>
             <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Use markdown para formatar o conteúdo..."
               className="w-full min-h-[200px] p-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
             />
@@ -186,13 +186,13 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
 
         {editorTab === "preview" && (
           <div className="border rounded-md p-4 min-h-[200px] bg-white">
-            {content ? (
+            {description ? (
               <div className="prose max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeRaw]}
                 >
-                  {content}
+                  {description}
                 </ReactMarkdown>
               </div>
             ) : (

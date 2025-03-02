@@ -1,12 +1,12 @@
-import { ContentMetrics } from "@/components/dashboard/ContentMetrics";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Overview } from "@/components/dashboard/Overview";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { FileText, Video, Radio, Clock } from "lucide-react";
+import { ContentMetrics } from "@/components/dashboard/ContentMetrics";
+import { Clock, FileText, Radio, Video } from "lucide-react";
 
-
-const DashboardPage = () => {
+export function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -20,7 +20,7 @@ const DashboardPage = () => {
             <p className="text-xs text-muted-foreground">+5 desde a semana passada</p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vídeos Curtos</CardTitle>
@@ -31,7 +31,7 @@ const DashboardPage = () => {
             <p className="text-xs text-muted-foreground">+3 desde a semana passada</p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Posts de Blog</CardTitle>
@@ -42,7 +42,7 @@ const DashboardPage = () => {
             <p className="text-xs text-muted-foreground">+1 desde a semana passada</p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tempo Médio de Produção</CardTitle>
@@ -54,7 +54,7 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
       </div>
-
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
@@ -67,7 +67,7 @@ const DashboardPage = () => {
             <Overview />
           </CardContent>
         </Card>
-
+        
         <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Métricas de Conteúdo</CardTitle>
@@ -80,7 +80,7 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
       </div>
-
+      
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -93,7 +93,7 @@ const DashboardPage = () => {
             <UpcomingTasks />
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader>
             <CardTitle>Atividade Recente</CardTitle>
@@ -108,6 +108,4 @@ const DashboardPage = () => {
       </div>
     </div>
   );
-};
-
-export default DashboardPage;
+}

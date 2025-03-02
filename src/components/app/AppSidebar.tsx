@@ -19,8 +19,7 @@ import {
   Settings,
   HelpCircle,
   Plus,
-  Layers,
-  PlusCircle
+  Layers
 } from "lucide-react";
 import { MainNavItem } from "@/types";
 import { NavLink } from "@/components/app/NavLink";
@@ -29,18 +28,20 @@ import { ChannelDialog } from "@/components/channels/ChannelDialog";
 import { useToast } from "@/hooks/use-toast";
 import { channelService } from "@/services/channelService";
 import { Channel } from "@/models/types";
-import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
   isMobile?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onNavigate?: (view: string, params?: { [k: string]: string | number | boolean }) => void;
+  currentView?: "dashboard" | "kanban" | "calendar" | "projects";
+  onNavigate?: (view: string, params?: any) => void;
 }
 
-export function AppSidebar ({
-  isMobile = false,
-  onOpenChange = () => { },
-  onNavigate = () => { }
+export function AppSidebar({ 
+  isMobile = false, 
+  onOpenChange = () => {}, 
+  currentView = "dashboard",
+  onNavigate = () => {} 
 }: AppSidebarProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -50,8 +51,13 @@ export function AppSidebar ({
 
   const navigationItems: MainNavItem[] = [
     {
-      title: t("navigation.dashboard"),
+      title: t("navigation.home"),
       href: "/",
+      icon: Home
+    },
+    {
+      title: t("navigation.dashboard"),
+      href: "/dashboard",
       icon: LayoutDashboard
     },
     {
@@ -65,8 +71,8 @@ export function AppSidebar ({
       icon: Calendar
     },
     {
-      title: t("navigation.newsletter"),
-      href: "/newsletter",
+      title: t("navigation.news"),
+      href: "/news",
       icon: Newspaper
     },
     {
@@ -109,6 +115,8 @@ export function AppSidebar ({
   const handleNavigation = (item: MainNavItem) => {
     if (item.href === "/") {
       onNavigate("dashboard");
+    } else if (item.href.includes("dashboard")) {
+      onNavigate("dashboard");
     } else if (item.href.includes("projects")) {
       onNavigate("projects");
     } else if (item.href.includes("calendar")) {
@@ -143,10 +151,6 @@ export function AppSidebar ({
           </div>
           <Separator />
           <div className="py-4">
-
-          </div>
-          <Separator />
-          <div className="py-4">
             {settingsItems.map((item) => (
               <NavLink
                 key={item.href}
@@ -162,14 +166,14 @@ export function AppSidebar ({
           <div className="mt-4 px-4">
             <ThemeToggle />
           </div>
-
+          
           <div className="mt-4 px-4">
             <Button onClick={() => setOpenCreateDialog(true)} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               {t("channels.newChannel")}
             </Button>
           </div>
-
+          
           {/* Diálogo de criação de canal */}
           <ChannelDialog
             open={openCreateDialog}
@@ -201,39 +205,6 @@ export function AppSidebar ({
         ))}
       </div>
       <Separator />
-
-      <SidebarGroup>
-        <SidebarGroupLabel className="px-6 py-2">Canais</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-muted-foreground hover:bg-muted/80"
-              // onClick={() => setDialogOpen(true)}
-              >
-                <PlusCircle className="w-4 h-4 mr-3" />
-                <span>{t("navigation.newChannel")}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            {channels.map((channel) => (
-              <SidebarMenuItem key={channel.id}>
-                <SidebarMenuButton
-                  className="text-muted-foreground hover:bg-muted/80"
-                // onClick={() => handleChannelClick(channel)}
-                >
-                  <span>{channel.name}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-
-      <Separator />
-
       <div className="py-4">
         {settingsItems.map((item) => (
           <NavLink
@@ -254,13 +225,13 @@ export function AppSidebar ({
           {t("channels.newChannel")}
         </Button>
       </div>
-
+      
       {/* Diálogo de criação de canal */}
       <ChannelDialog
         open={openCreateDialog}
         onOpenChange={setOpenCreateDialog}
         onSave={handleCreateChannel}
       />
-    </div >
+    </div>
   );
 }

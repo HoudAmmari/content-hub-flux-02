@@ -66,13 +66,36 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
     });
   };
   
+  const getChannelIcon = (channel: string) => {
+    switch (channel.toLowerCase()) {
+      case "videos":
+      case "vídeos curtos":
+        return <Instagram className="h-3 w-3" />;
+      case "youtube":
+        return <Youtube className="h-3 w-3" />;
+      case "linkedin":
+        return <Linkedin className="h-3 w-3" />;
+      case "blog":
+        return <FileText className="h-3 w-3" />;
+      default:
+        return <FileText className="h-3 w-3" />;
+    }
+  };
   
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "idea":
       case "backlog":
         return "bg-yellow-500/20 text-yellow-700";
+      case "writing":
+      case "draft":
       case "in_progress":
+      case "script":
         return "bg-blue-500/20 text-blue-700";
+      case "review":
+      case "recording":
+      case "editing":
+      case "research":
       case "pending":
         return "bg-purple-500/20 text-purple-700";
       case "done":
@@ -191,7 +214,7 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
               </div>
               
               <p className="text-xs text-muted-foreground line-clamp-2">
-                {card.description.replace(/[#*`\\[\]\-_]/g, '')}
+                {card.description.replace(/[#*`\[\]\-_]/g, '')}
               </p>
               
               <div className="flex flex-wrap gap-1">
@@ -221,6 +244,15 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
                 {formatDate(card.dueDate)}
               </div>
               
+              <div className="flex items-center gap-1">
+                <Badge 
+                  variant="secondary" 
+                  className={cn("flex items-center gap-1 px-1.5 py-0 h-5 text-xs", getStatusColor(card.status))}
+                >
+                  {getChannelIcon(card.channel)}
+                  <span>{getChannelName(card.channel)}</span>
+                </Badge>
+              </div>
             </CardFooter>
           </Card>
         )}
@@ -254,7 +286,11 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Badge className={cn(getStatusColor(card.status))}>
-                {card.status}
+                {t(`kanban.${card.status}`) || card.status}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                {getChannelIcon(card.channel)}
+                <span>{getChannelName(card.channel)}</span>
               </Badge>
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
                 <Clock className="h-4 w-4" />

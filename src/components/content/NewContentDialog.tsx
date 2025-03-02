@@ -18,16 +18,17 @@ export function NewContentDialog({ open, onOpenChange, initialDate, channel, onS
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const initialContent : Content = {
-    id: "",
-    title: "",
-    description: "",
-    status: "",
-    channelId: channel?.id || "",
-    tags: [],
-    dueDate: initialDate || "",
-    isEpic: false,
-  };
+  const initialContent = initialDate
+    ? {
+        id: "",
+        title: "",
+        description: "",
+        status: "idea",
+        channel: channel?.name || "blog",
+        tags: [],
+        dueDate: initialDate,
+      }
+    : undefined;
 
   const handleSave = async (content: Partial<Content>) => {
     setIsLoading(true);
