@@ -77,7 +77,10 @@
     "loading": "Carregando",
     "noResults": "Nenhum resultado encontrado",
     "edit": "Editar",
-    "delete": "Excluir"
+    "delete": "Excluir",
+    "view": "Visualizar",
+    "duplicate": "Duplicar",
+    "close": "Fechar"
   },
   "navigation": {
     "home": "Início",
@@ -120,6 +123,11 @@
   "content": {
     "newContent": "Novo Conteúdo",
     "showEpics": "Mostrar Épicos",
-    "hideEpics": "Esconder Épicos"
+    "hideEpics": "Esconder Épicos",
+    "deleteConfirm": "Tem certeza que deseja excluir este item?",
+    "dueDate": "Data de Entrega",
+    "description": "Descrição",
+    "tags": "Tags",
+    "editContent": "Editar Conteúdo"
   }
 }

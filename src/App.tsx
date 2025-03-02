@@ -11,7 +11,6 @@ import { AppHeader } from "./components/app/AppHeader";
 import { AppSidebar } from "./components/app/AppSidebar";
 import { SidebarProvider } from "./components/ui/sidebar";
 import { useIsMobile } from "./hooks/use-mobile";
-import { useState } from "react";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { KanbanPage } from "./pages/KanbanPage";
@@ -21,19 +20,8 @@ const queryClient = new QueryClient();
 const App = () => {
   const isMobile = useIsMobile();
 
-  const handleNavigate = (view: string, params?: { channel: string; }) => {
-    // if (view === "kanban" && params?.channel) {
-    //   setSelectedChannelName(params.channel);
-    // } else {
-    //   setSelectedChannelName(undefined);
-    // }
-
-    // console.log("Navigating to view:", view);
-
-    // // Here we need to convert the view string to the type accepted by setCurrentView
-    // if (view === "dashboard" || view === "kanban" || view === "calendar" || view === "projects") {
-    //   setCurrentView(view);
-    // }
+  const handleNavigate = (view: string, params?: { channel: string }) => {
+    // sua lógica de navegação, se necessário
   };
 
   return (
@@ -43,31 +31,30 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <SidebarProvider>
-            <div className="min-h-screen flex w-full bg-background">
-              <AppSidebar
-                isMobile={isMobile}
-                onNavigate={handleNavigate}
-              />
-              <div className="flex-1 flex flex-col">
+            <div className="h-screen flex flex-row bg-background w-full overflow-hidden">
+              <div className="w-64">
+                <AppSidebar isMobile={isMobile} onNavigate={handleNavigate} />
+              </div>
+
+              <div className="flex-1 flex flex-col overflow-hidden">
                 <AppHeader />
-                <main className="flex-1 p-6 overflow-auto">
+
+                <main className="flex-1 p-6 overflow-scroll flex-1">
                   <Routes>
-                    
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/newsletter" element={<Newsletter />} />
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/channels/manage" element={<ChannelManager />} />
                     <Route path="/channels/:channelId" element={<KanbanPage />} />
-                    
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
               </div>
+
             </div>
           </SidebarProvider>
-
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

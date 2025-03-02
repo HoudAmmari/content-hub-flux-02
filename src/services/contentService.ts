@@ -1,12 +1,15 @@
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
+import contentMock from './mock/content-mock';
 
 // Simulação de um banco de dados em memória
 const db = new Map<string, Content>();
 
 // Dados iniciais para simulação
-db.set('1', { id: '1', title: 'Content 1', description: 'Description 1', status: 'backlog', channel: '1', tags: [], dueDate: new Date().toISOString(), isEpic: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-db.set('2', { id: '2', title: 'Content 2', description: 'Description 2', status: 'in_progress', channel: '1', tags: [], dueDate: new Date().toISOString(), isEpic: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+for (const content of contentMock) {
+  db.set(content.id, content);
+}
+
 
 // Serviço para gerenciar operações CRUD de conteúdos
 export const contentService = {
@@ -28,7 +31,7 @@ export const contentService = {
   // Obter conteúdos por canal
   async getContentsByChannel(channel: string, includeEpics: boolean = false): Promise<Content[]> {
     try {
-      let contents = Array.from(db.values()).filter(content => content.channel === channel);
+      let contents = Array.from(db.values()).filter(content => content.channelId === channel);
       
       if (!includeEpics) {
         contents = contents.filter(content => !content.isEpic);
@@ -50,7 +53,7 @@ export const contentService = {
   // Obter épicos por canal
   async getEpicsByChannel(channel: string): Promise<Content[]> {
     try {
-      const contents = Array.from(db.values()).filter(content => content.channel === channel && content.isEpic);
+      const contents = Array.from(db.values()).filter(content => content.channelId === channel && content.isEpic);
       contents.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
       return contents.map(row => ({
         ...row,
@@ -91,7 +94,7 @@ export const contentService = {
         title: content.title,
         description: content.description || '',
         status: content.status,
-        channel: content.channel,
+        channelId: content.channelId,
         tags: content.tags || [],
         dueDate: content.dueDate || now,
         isEpic: content.isEpic || false,
@@ -119,7 +122,7 @@ export const contentService = {
         title: content.title ?? existingContent.title,
         description: content.description ?? existingContent.description,
         status: content.status ?? existingContent.status,
-        channel: content.channel ?? existingContent.channel,
+        channel: content.channelId ?? existingContent.channel,
         tags: content.tags ?? existingContent.tags,
         dueDate: content.dueDate ?? existingContent.dueDate,
         isEpic: content.isEpic ?? existingContent.isEpic,

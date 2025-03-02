@@ -1,12 +1,16 @@
 import { Channel } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
-
+import channelMock from './mock/channel-mock';
 // Simulação de um banco de dados em memória
 const db = new Map<string, Channel>();
 
+
 // Dados iniciais para simulação
-db.set('1', { id: '1', name: 'Channel 1', description: 'Description 1', statuses: ["backlog", "in_progress", "pending", "done"], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-db.set('2', { id: '2', name: 'Channel 2', description: 'Description 2', statuses: ["backlog", "in_progress", "pending", "done"], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+for (const channel of channelMock) {
+  db.set(channel.id, channel);
+}
+
+
 
 // Serviço para gerenciar operações CRUD de canais
 export const channelService = {
@@ -16,7 +20,7 @@ export const channelService = {
       const result = Array.from(db.values());
       return result.map(row => ({
         ...row,
-        statuses: row.statuses || ["backlog", "in_progress", "pending", "done"]
+        statuses: row.statuses || []
       }));
     } catch (error) {
       console.error('Erro ao buscar canais:', error);
@@ -33,7 +37,7 @@ export const channelService = {
       }
       return {
         ...channel,
-        statuses: channel.statuses || ["backlog", "in_progress", "pending", "done"]
+        statuses: channel.statuses || []
       };
     } catch (error) {
       console.error(`Erro ao buscar canal ${id}:`, error);
@@ -50,7 +54,7 @@ export const channelService = {
       }
       return {
         ...channel,
-        statuses: channel.statuses || ["backlog", "in_progress", "pending", "done"]
+        statuses: channel.statuses || []
       };
     } catch (error) {
       console.error(`Erro ao buscar canal ${name}:`, error);
@@ -67,7 +71,7 @@ export const channelService = {
         id,
         name: channel.name,
         description: channel.description || '',
-        statuses: channel.statuses || ["backlog", "in_progress", "pending", "done"],
+        statuses: channel.statuses || [],
         createdAt: now,
         updatedAt: now
       };

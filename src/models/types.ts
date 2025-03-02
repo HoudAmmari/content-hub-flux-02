@@ -6,8 +6,9 @@ export interface Content {
   title: string;
   description: string;
   status: string;
-  channel: string;
+  channelId: string;
   tags: string[];
+  content?: string;
   dueDate: string;
   isEpic?: boolean;
   createdAt?: string;
@@ -42,9 +43,15 @@ export interface Channel {
   id: string;
   name: string;
   description?: string;
-  statuses: string[];
+  statuses: CannelStatus[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CannelStatus {
+  index: number;
+  name: string;
+  type: "backlog" | "in_progress" | "pending" | "done";
 }
 
 export interface NewsItem {

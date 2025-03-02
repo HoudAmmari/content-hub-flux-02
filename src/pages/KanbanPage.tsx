@@ -1,17 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { Button } from "@/components/ui/button";
-import { FilterX, ListFilter, Plus, Layers } from "lucide-react";
+import { Plus, Layers } from "lucide-react";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
 import { NewContentDialog } from "@/components/content/NewContentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,13 +23,12 @@ export function KanbanPage() {
   const isMobile = useIsMobile();
   const { channelId } = useParams();
   const navigate = useNavigate();
-  
+
   const [cards, setCards] = useState<Content[]>([]);
   const [epics, setEpics] = useState<Content[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
   const [showEpics, setShowEpics] = useState(false);
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,19 +37,17 @@ export function KanbanPage() {
     fetchChannels();
   }, []);
 
-  useEffect(() => { 
-    if(channels.length == 0) 
-        return;
+  useEffect(() => {
+    if (channels.length === 0) return;
 
-    if(channelId) {
-        const channel = channels.find(c => c.id === channelId);
-        if(channel) {
-            setSelectedChannelId(channel.id);
-            setSelectedChannel(channel);
-        } else {
-            navigate("/");
-            return;
-        }
+    if (channelId) {
+      const channel = channels.find((c) => c.id === channelId);
+      if (channel) {
+        setSelectedChannelId(channel.id);
+        setSelectedChannel(channel);
+      } else {
+        navigate("/");
+      }
     }
   }, [channels]);
 
@@ -84,14 +75,16 @@ export function KanbanPage() {
     setIsLoading(true);
     try {
       if (!selectedChannel) return;
-      
-      // Buscar conteúdos regulares
-      const contentsData = await contentService.getContentsByChannel(selectedChannel.name);
+
+      const contentsData = await contentService.getContentsByChannel(
+        selectedChannel.id
+      );
       setCards(contentsData);
-      
-      // Buscar épicos, se necessário
+
       if (showEpics) {
-        const epicsData = await contentService.getEpicsByChannel(selectedChannel.name);
+        const epicsData = await contentService.getEpicsByChannel(
+          selectedChannel.id
+        );
         setEpics(epicsData);
       } else {
         setEpics([]);
@@ -110,27 +103,27 @@ export function KanbanPage() {
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-    
+
     const { source, destination, draggableId } = result;
-    
+
     // Se a origem e o destino são iguais, não faz nada
     if (source.droppableId === destination.droppableId) return;
-    
+
     // Atualiza a UI imediatamente para feedback instantâneo
     setCards((prevCards) =>
       prevCards.map((card) =>
         card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
-    
+
     // Atualiza no banco de dados
     try {
-      const cardToUpdate = cards.find(card => card.id === draggableId);
+      const cardToUpdate = cards.find((card) => card.id === draggableId);
       if (cardToUpdate) {
         await contentService.updateContent(draggableId, {
-          status: destination.droppableId
+          status: destination.droppableId,
         });
-        
+
         toast({
           title: "Conteúdo atualizado",
           description: "Status atualizado com sucesso.",
@@ -143,7 +136,7 @@ export function KanbanPage() {
         description: "Não foi possível atualizar o status.",
         variant: "destructive",
       });
-      
+
       // Reverte a alteração na UI em caso de erro
       setCards((prevCards) =>
         prevCards.map((card) =>
@@ -151,12 +144,6 @@ export function KanbanPage() {
         )
       );
     }
-  };
-
-  const handleChannelChange = (channelId: string) => {
-    const channel = channels.find(c => c.id === channelId);
-    setSelectedChannelId(channelId);
-    setSelectedChannel(channel || null);
   };
 
   const handleShowEpicsChange = (show: boolean) => {
@@ -172,51 +159,38 @@ export function KanbanPage() {
     return columnCards;
   };
 
-  const getTranslatedStatus = (status: string) => {
-    return t(`kanban.${status}`) || status;
-  };
-
+  // Envolvemos cada coluna em uma <div> com largura fixa para evitar que estiquem a tela toda
   const renderColumns = () => {
     if (!selectedChannel) return null;
-    
     return selectedChannel.statuses.map((status) => (
-      <KanbanColumn 
-        key={status} 
-        id={status} 
-        title={getTranslatedStatus(status)} 
-        droppableId={status}
-      >
-        {getColumnCards(status).map((card, index) => (
-          <KanbanCard 
-            key={card.id} 
-            card={card} 
-            index={index}
-            onUpdate={fetchContents}
-          />
-        ))}
-      </KanbanColumn>
+      <div key={status.index} className="shrink-0 w-64"> 
+        {/* w-64 => 256px de largura fixa para cada coluna */}
+        <KanbanColumn
+          status={status}
+          title={status.name}
+          droppableId={status.name}
+        >
+          {getColumnCards(status.name).map((card, index) => (
+            <KanbanCard
+              key={card.id}
+              card={card}
+              index={index}
+              onUpdate={fetchContents}
+            />
+          ))}
+        </KanbanColumn>
+      </div>
     ));
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <h1 className="text-2xl font-semibold">{selectedChannel?.name}</h1>
-          
-          {/* <div className="flex items-center gap-2">
-            <Button 
-              variant={showFilters ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="gap-1"
-            >
-              {showFilters ? <FilterX className="h-4 w-4" /> : <ListFilter className="h-4 w-4" />}
-              <span>{showFilters ? t("kanban.clearFilters") : t("kanban.filters")}</span>
-            </Button>
-          </div> */}
         </div>
-        
+
         <div className="flex gap-4 items-center">
           {selectedChannel && selectedChannel.name.toLowerCase() === "youtube" && (
             <div className="flex items-center space-x-2">
@@ -227,33 +201,31 @@ export function KanbanPage() {
               />
               <Label htmlFor="show-epics" className="flex items-center gap-1">
                 <Layers className="h-4 w-4" />
-                <span>{showEpics ? t("content.hideEpics") : t("content.showEpics")}</span>
+                <span>
+                  {showEpics ? t("content.hideEpics") : t("content.showEpics")}
+                </span>
                 <Badge className="ml-1 bg-purple-500/20 text-purple-700 hover:bg-purple-500/30">
                   {epics.length}
                 </Badge>
               </Label>
             </div>
           )}
-          
-          <Button 
-            onClick={() => setOpenNewContent(true)}
-            className="gap-1"
-          >
+
+          <Button onClick={() => setOpenNewContent(true)} className="gap-1">
             <Plus className="h-4 w-4" />
             <span>{t("content.newContent")}</span>
           </Button>
         </div>
       </div>
-      
-      {/* {showFilters && <KanbanFilters />} */}
-      
+
+      {/* Tabs */}
       <div className="mt-6">
         <Tabs defaultValue="kanban">
           <TabsList className="mb-4">
             <TabsTrigger value="kanban">{t("kanban.board")}</TabsTrigger>
             <TabsTrigger value="list">{t("kanban.list")}</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="kanban" className="mt-0">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground">
@@ -261,13 +233,17 @@ export function KanbanPage() {
               </div>
             ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
-                <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : `grid-cols-${Math.min(selectedChannel?.statuses.length || 4, 4)} gap-4`}`}>
-                  {renderColumns()}
+                {/* Somente esta parte terá scroll horizontal */}
+                <div className="overflow-x-auto max-w-full">
+                  {/* Usamos flex-nowrap e colunas fixas para forçar o scroll quando excederem a tela */}
+                  <div className="flex flex-row flex-nowrap gap-4">
+                    {renderColumns()}
+                  </div>
                 </div>
               </DragDropContext>
             )}
           </TabsContent>
-          
+
           <TabsContent value="list" className="mt-0">
             <div className="rounded-md border">
               <div className="p-8 text-center text-muted-foreground">
@@ -277,10 +253,10 @@ export function KanbanPage() {
           </TabsContent>
         </Tabs>
       </div>
-      
-      <NewContentDialog 
-        open={openNewContent} 
-        onOpenChange={setOpenNewContent} 
+
+      <NewContentDialog
+        open={openNewContent}
+        onOpenChange={setOpenNewContent}
         channel={selectedChannel}
         onSuccess={fetchContents}
       />
