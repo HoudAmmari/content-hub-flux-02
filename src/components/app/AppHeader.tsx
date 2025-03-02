@@ -2,13 +2,22 @@
 import { ModeToggle } from "@/components/app/ModeToggle";
 import { LanguageSelector } from "@/components/app/LanguageSelector";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 
 interface AppHeaderProps {
   currentView: string;
 }
 
-export function AppHeader({ currentView }: AppHeaderProps) {
+export function AppHeader() {
   const { t } = useTranslation();
+  const [currentView, setCurrentView] = useState<string>();
+
+  useEffect(() => {
+    if (!currentView) {
+      setCurrentView(window.location.pathname.replace("/", ""));
+    }
+
+  }, []);
   
   const getTitle = () => {
     switch (currentView) {

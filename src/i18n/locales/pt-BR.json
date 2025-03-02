@@ -1,7 +1,6 @@
 {
   "app_title": "ContentHub",
   "dashboard": "Dashboard",
-  "kanban": "Kanban",
   "calendar": "Calendário",
   "projects": "Projetos",
   "channels": "Canais",
@@ -72,8 +71,29 @@
   "warning": "Aviso",
   "error": "Erro",
   "try_again": "Tentar novamente",
+  "general": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "loading": "Carregando",
+    "noResults": "Nenhum resultado encontrado",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "view": "Visualizar",
+    "duplicate": "Duplicar",
+    "close": "Fechar"
+  },
   "navigation": {
-    "channelManager": "Gerenciar Canais"
+    "home": "Início",
+    "channelManager": "Gerenciar Canais",
+    "dashboard": "Dashboard",
+    "content": "Conteúdos",
+    "calendar": "Calendário",
+    "projects": "Projetos",
+    "settings": "Configurações",
+    "channels": "Canais",
+    "newChannel": "Novo Canal",
+    "newsletter": "Newsletter",
+    "help": "Ajuda"
   },
   "channels": {
     "manageChannels": "Gerenciar Canais",
@@ -88,5 +108,26 @@
     "addStatus": "Adicionar Status",
     "statusNamePlaceholder": "Nome do status",
     "dragToReorder": "Arraste para reordenar os status"
+  },
+  "kanban": {
+    "title": "Kanban",
+    "filters": "Filtros",
+    "board": "Quadro",
+    "list": "Lista",
+    "backlog": "Backlog",
+    "in_progress": "Em Progresso",
+    "pending": "Pendente",
+    "done": "Concluído",
+    "dragToMove": "Arraste para mover"
+  },
+  "content": {
+    "newContent": "Novo Conteúdo",
+    "showEpics": "Mostrar Épicos",
+    "hideEpics": "Esconder Épicos",
+    "deleteConfirm": "Tem certeza que deseja excluir este item?",
+    "dueDate": "Data de Entrega",
+    "description": "Descrição",
+    "tags": "Tags",
+    "editContent": "Editar Conteúdo"
   }
 }

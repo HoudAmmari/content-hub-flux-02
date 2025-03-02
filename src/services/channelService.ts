@@ -1,17 +1,26 @@
-
-import { query } from '../lib/db';
 import { Channel } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
+import channelMock from './mock/channel-mock';
+// Simulação de um banco de dados em memória
+const db = new Map<string, Channel>();
+
+
+// Dados iniciais para simulação
+for (const channel of channelMock) {
+  db.set(channel.id, channel);
+}
+
+
 
 // Serviço para gerenciar operações CRUD de canais
 export const channelService = {
   // Obter todos os canais
   async getAllChannels(): Promise<Channel[]> {
     try {
-      const result = await query('SELECT * FROM channels ORDER BY name');
-      return result.rows.map(row => ({
+      const result = Array.from(db.values());
+      return result.map(row => ({
         ...row,
-        statuses: row.statuses || ["backlog", "in_progress", "pending", "done"]
+        statuses: row.statuses || []
       }));
     } catch (error) {
       console.error('Erro ao buscar canais:', error);
@@ -22,13 +31,13 @@ export const channelService = {
   // Obter um canal pelo ID
   async getChannelById(id: string): Promise<Channel | null> {
     try {
-      const result = await query('SELECT * FROM channels WHERE id = $1', [id]);
-      if (result.rows.length === 0) {
+      const channel = db.get(id);
+      if (!channel) {
         return null;
       }
       return {
-        ...result.rows[0],
-        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+        ...channel,
+        statuses: channel.statuses || []
       };
     } catch (error) {
       console.error(`Erro ao buscar canal ${id}:`, error);
@@ -39,13 +48,13 @@ export const channelService = {
   // Obter um canal pelo nome
   async getChannelByName(name: string): Promise<Channel | null> {
     try {
-      const result = await query('SELECT * FROM channels WHERE name = $1', [name]);
-      if (result.rows.length === 0) {
+      const channel = Array.from(db.values()).find(channel => channel.name === name);
+      if (!channel) {
         return null;
       }
       return {
-        ...result.rows[0],
-        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+        ...channel,
+        statuses: channel.statuses || []
       };
     } catch (error) {
       console.error(`Erro ao buscar canal ${name}:`, error);
@@ -58,14 +67,16 @@ export const channelService = {
     try {
       const id = uuidv4();
       const now = new Date().toISOString();
-      const result = await query(
-        'INSERT INTO channels (id, name, description, statuses, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [id, channel.name, channel.description || '', channel.statuses || ["backlog", "in_progress", "pending", "done"], now, now]
-      );
-      return {
-        ...result.rows[0],
-        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      const newChannel: Channel = {
+        id,
+        name: channel.name,
+        description: channel.description || '',
+        statuses: channel.statuses || [],
+        createdAt: now,
+        updatedAt: now
       };
+      db.set(id, newChannel);
+      return newChannel;
     } catch (error) {
       console.error('Erro ao criar canal:', error);
       throw error;
@@ -88,19 +99,14 @@ export const channelService = {
         updatedAt: now
       };
 
-      const result = await query(
-        'UPDATE channels SET name = $1, description = $2, statuses = $3, "updatedAt" = $4 WHERE id = $5 RETURNING *',
-        [updates.name, updates.description, updates.statuses, updates.updatedAt, id]
-      );
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return {
-        ...result.rows[0],
-        statuses: result.rows[0].statuses || ["backlog", "in_progress", "pending", "done"]
+      const updatedChannel: Channel = {
+        ...existingChannel,
+        ...updates
       };
+
+      db.set(id, updatedChannel);
+
+      return updatedChannel;
     } catch (error) {
       console.error(`Erro ao atualizar canal ${id}:`, error);
       throw error;
@@ -110,8 +116,8 @@ export const channelService = {
   // Excluir um canal
   async deleteChannel(id: string): Promise<boolean> {
     try {
-      const result = await query('DELETE FROM channels WHERE id = $1', [id]);
-      return result.rowCount > 0;
+      const result = db.delete(id);
+      return result;
     } catch (error) {
       console.error(`Erro ao excluir canal ${id}:`, error);
       throw error;

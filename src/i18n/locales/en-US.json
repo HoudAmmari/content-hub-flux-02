@@ -1,7 +1,6 @@
 {
   "app_title": "ContentHub",
   "dashboard": "Dashboard",
-  "kanban": "Kanban",
   "calendar": "Calendar",
   "projects": "Projects",
   "channels": "Channels",
@@ -72,8 +71,29 @@
   "warning": "Warning",
   "error": "Error",
   "try_again": "Try Again",
+  "general": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading",
+    "noResults": "No results found",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "duplicate": "Duplicate",
+    "close": "Close"
+  },
   "navigation": {
-    "channelManager": "Manage Channels"
+    "home": "Home",
+    "channelManager": "Manage Channels",
+    "dashboard": "Dashboard",
+    "content": "Content",
+    "calendar": "Calendar",
+    "projects": "Projects",
+    "settings": "Settings",
+    "channels": "Channels",
+    "newChannel": "New Channel",
+    "newsletter": "Newsletter",
+    "help": "Help"
   },
   "channels": {
     "manageChannels": "Manage Channels",
@@ -88,5 +108,26 @@
     "addStatus": "Add Status",
     "statusNamePlaceholder": "Status name",
     "dragToReorder": "Drag to reorder statuses"
+  },
+  "kanban": {
+    "title": "Kanban",
+    "filters": "Filters",
+    "board": "Board",
+    "list": "List",
+    "backlog": "Backlog",
+    "in_progess": "In Progress",
+    "pending": "Pending",
+    "done": "Done",
+    "dragToMove": "Drag to move"
+  },
+  "content": {
+    "newContent": "New Content",
+    "showEpics": "Show Epics",
+    "hideEpics": "Hide Epics",
+    "deleteConfirm": "Are you sure you want to delete this item?",
+    "dueDate": "Due Date",
+    "description": "Description",
+    "tags": "Tags",
+    "editContent": "Edit Content"
   }
 }
