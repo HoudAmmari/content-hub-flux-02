@@ -43,12 +43,12 @@ export interface Channel {
   id: string;
   name: string;
   description?: string;
-  statuses: CannelStatus[];
+  statuses: ChannelStatus[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface CannelStatus {
+export interface ChannelStatus {
   index: number;
   name: string;
   type: "backlog" | "in_progress" | "pending" | "done";

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Sheet,
@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { channelService } from "@/services/channelService";
 import { Channel } from "@/models/types";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import channelMock from "@/services/mock/channel-mock";
 
 interface AppSidebarProps {
   isMobile?: boolean;
@@ -47,6 +48,21 @@ export function AppSidebar ({
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const { state: sidebarState, openMobile, setOpenMobile } = useSidebar();
+
+  useEffect(() => {
+    fetchChannels();
+  }, []);
+
+  const fetchChannels = async () => {
+    try {
+      const data = await channelService.getAllChannels();
+      setChannels(data);
+    } catch (error) {
+      console.error("Erro ao buscar canais:", error);
+      // Fallback para usar os dados do mock
+      setChannels(channelMock);
+    }
+  };
 
   const navigationItems: MainNavItem[] = [
     {
@@ -92,6 +108,7 @@ export function AppSidebar ({
   const handleCreateChannel = async (channel: Omit<Channel, "id" | "createdAt" | "updatedAt">) => {
     try {
       await channelService.createChannel(channel);
+      fetchChannels();
       toast({
         title: "Sucesso",
         description: "Canal criado com sucesso!",
@@ -116,6 +133,10 @@ export function AppSidebar ({
     } else if (item.href.includes("kanban")) {
       onNavigate("kanban");
     }
+  };
+
+  const handleChannelClick = (channel: Channel) => {
+    onNavigate("kanban", { channelId: channel.id });
   };
 
   // Mobile sidebar appears as a Sheet
@@ -143,7 +164,32 @@ export function AppSidebar ({
           </div>
           <Separator />
           <div className="py-4">
-
+            <SidebarGroup>
+              <SidebarGroupLabel className="px-4 py-2">{t("navigation.channels")}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {channels.map((channel) => (
+                    <SidebarMenuItem key={channel.id}>
+                      <SidebarMenuButton
+                        className="text-muted-foreground hover:bg-muted/80"
+                        onClick={() => handleChannelClick(channel)}
+                      >
+                        <span>{channel.name}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="text-muted-foreground hover:bg-muted/80"
+                      onClick={() => setOpenCreateDialog(true)}
+                    >
+                      <PlusCircle className="w-4 h-4 mr-3" />
+                      <span>{t("navigation.newChannel")}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </div>
           <Separator />
           <div className="py-4">
@@ -203,34 +249,31 @@ export function AppSidebar ({
       <Separator />
 
       <SidebarGroup>
-        <SidebarGroupLabel className="px-6 py-2">Canais</SidebarGroupLabel>
+        <SidebarGroupLabel className="px-6 py-2">{t("navigation.channels")}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-muted-foreground hover:bg-muted/80"
-              // onClick={() => setDialogOpen(true)}
-              >
-                <PlusCircle className="w-4 h-4 mr-3" />
-                <span>{t("navigation.newChannel")}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
             {channels.map((channel) => (
               <SidebarMenuItem key={channel.id}>
                 <SidebarMenuButton
                   className="text-muted-foreground hover:bg-muted/80"
-                // onClick={() => handleChannelClick(channel)}
+                  onClick={() => handleChannelClick(channel)}
                 >
                   <span>{channel.name}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-muted-foreground hover:bg-muted/80"
+                onClick={() => setOpenCreateDialog(true)}
+              >
+                <PlusCircle className="w-4 h-4 mr-3" />
+                <span>{t("navigation.newChannel")}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-
 
       <Separator />
 
@@ -261,6 +304,6 @@ export function AppSidebar ({
         onOpenChange={setOpenCreateDialog}
         onSave={handleCreateChannel}
       />
-    </div >
+    </div>
   );
 }

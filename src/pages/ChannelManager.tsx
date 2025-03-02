@@ -141,8 +141,8 @@ export default function ChannelManager() {
                 <h4 className="text-sm font-medium mb-2">{t("channels.statuses")}:</h4>
                 <div className="flex flex-wrap gap-2">
                   {channel.statuses.map((status) => (
-                    <Badge key={status} variant="secondary">
-                      {status}
+                    <Badge key={status.index} variant="secondary">
+                      {status.name}
                     </Badge>
                   ))}
                 </div>
