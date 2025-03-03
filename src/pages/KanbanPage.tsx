@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +49,6 @@ export function KanbanPage() {
         navigate("/");
       }
     } else if (channels.length > 0) {
-      // Se não houver channelId, selecione o primeiro canal
       setSelectedChannelId(channels[0].id);
       setSelectedChannel(channels[0]);
     }
@@ -111,18 +109,15 @@ export function KanbanPage() {
 
     const { source, destination, draggableId } = result;
 
-    // Se a origem e o destino são iguais, não faz nada
     if (source.droppableId === destination.droppableId && 
         source.index === destination.index) return;
 
-    // Atualiza a UI imediatamente para feedback instantâneo
     setCards((prevCards) =>
       prevCards.map((card) =>
         card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
 
-    // Atualiza no banco de dados
     try {
       const cardToUpdate = cards.find((card) => card.id === draggableId);
       if (cardToUpdate) {
@@ -143,7 +138,6 @@ export function KanbanPage() {
         variant: "destructive",
       });
 
-      // Reverte a alteração na UI em caso de erro
       setCards((prevCards) =>
         prevCards.map((card) =>
           card.id === draggableId ? { ...card, status: source.droppableId } : card
@@ -165,7 +159,6 @@ export function KanbanPage() {
     return columnCards;
   };
 
-  // Envolvemos cada coluna em uma <div> com largura fixa para evitar que estiquem a tela toda
   const renderColumns = () => {
     if (!selectedChannel) return null;
     return selectedChannel.statuses.map((status) => (
@@ -190,7 +183,6 @@ export function KanbanPage() {
 
   return (
     <div className="space-y-4 w-full">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <h1 className="text-2xl font-semibold">{selectedChannel?.name || t("kanban.board")}</h1>
@@ -223,7 +215,6 @@ export function KanbanPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="mt-6">
         <Tabs defaultValue="kanban">
           <TabsList className="mb-4">
@@ -238,9 +229,7 @@ export function KanbanPage() {
               </div>
             ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
-                {/* Somente esta parte terá scroll horizontal */}
                 <div className="overflow-x-auto max-w-full pb-4">
-                  {/* Usamos flex-nowrap e colunas fixas para forçar o scroll quando excederem a tela */}
                   <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
                     {renderColumns()}
                   </div>
