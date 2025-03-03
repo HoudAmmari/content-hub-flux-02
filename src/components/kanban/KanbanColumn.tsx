@@ -1,12 +1,13 @@
+
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Droppable } from "react-beautiful-dnd";
-import { Content, Channel, ChannelStatus } from "@/models/types";
+import { CannelStatus } from "@/models/types";
 
 interface KanbanColumnProps {
-  status: ChannelStatus;
+  status: CannelStatus;
   title: string;
   children: ReactNode;
   droppableId: string;

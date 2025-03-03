@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -192,8 +193,8 @@ export function ChannelsView() {
                     </h3>
                     <div className="flex flex-wrap gap-1">
                       {channel.statuses.map((status) => (
-                        <Badge key={status.name} variant="outline" className="text-xs">
-                          {status.name}
+                        <Badge key={status} variant="outline" className="text-xs">
+                          {status}
                         </Badge>
                       ))}
                     </div>

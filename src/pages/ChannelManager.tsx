@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -140,7 +141,7 @@ export default function ChannelManager() {
                 <h4 className="text-sm font-medium mb-2">{t("channels.statuses")}:</h4>
                 <div className="flex flex-wrap gap-2">
                   {channel.statuses.map((status) => (
-                    <Badge key={status.name} variant="secondary">
+                    <Badge key={status.index} variant="secondary">
                       {status.name}
                     </Badge>
                   ))}
@@ -171,12 +172,14 @@ export default function ChannelManager() {
         </div>
       )}
 
+      {/* Diálogo de criação de canal */}
       <ChannelDialog
         open={openCreateDialog}
         onOpenChange={setOpenCreateDialog}
         onSave={handleCreateChannel}
       />
 
+      {/* Diálogo de edição de canal */}
       <ChannelDialog
         channel={editingChannel || undefined}
         open={!!editingChannel}
