@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Channel } from "@/models/types";
+import { Channel, ChannelStatus } from "@/models/types";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -24,7 +24,7 @@ export function ChannelDialog({ channel, open, onOpenChange, onSave }: ChannelDi
   const { toast } = useToast();
   const [name, setName] = useState(channel?.name || "");
   const [description, setDescription] = useState(channel?.description || "");
-  const [statuses, setStatuses] = useState<string[]>(channel?.statuses || ["backlog", "in_progress", "pending", "done"]);
+  const [statuses, setStatuses] = useState<ChannelStatus[]>([]);
   const [newStatus, setNewStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,26 +32,48 @@ export function ChannelDialog({ channel, open, onOpenChange, onSave }: ChannelDi
     if (open) {
       setName(channel?.name || "");
       setDescription(channel?.description || "");
-      setStatuses(channel?.statuses || ["backlog", "in_progress", "pending", "done"]);
+      
+      // Initialize with default statuses or the channel's statuses
+      if (channel?.statuses && channel.statuses.length > 0) {
+        setStatuses(channel.statuses);
+      } else {
+        setStatuses([
+          { index: 0, name: "backlog", type: "backlog" },
+          { index: 1, name: "in_progress", type: "in_progress" },
+          { index: 2, name: "pending", type: "pending" },
+          { index: 3, name: "done", type: "done" }
+        ]);
+      }
+      
       setNewStatus("");
     }
   }, [open, channel]);
 
   const handleAddStatus = () => {
-    if (newStatus.trim() && !statuses.includes(newStatus.trim())) {
-      setStatuses([...statuses, newStatus.trim()]);
-      setNewStatus("");
-    } else if (statuses.includes(newStatus.trim())) {
-      toast({
-        title: "Status já existe",
-        description: "Este status já foi adicionado.",
-        variant: "destructive",
-      });
+    if (newStatus.trim()) {
+      const statusExists = statuses.some(status => status.name === newStatus.trim());
+      
+      if (!statusExists) {
+        const newStatusObj: ChannelStatus = {
+          index: statuses.length,
+          name: newStatus.trim(),
+          type: "pending" // Default type
+        };
+        
+        setStatuses([...statuses, newStatusObj]);
+        setNewStatus("");
+      } else {
+        toast({
+          title: "Status já existe",
+          description: "Este status já foi adicionado.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleRemoveStatus = (status: string) => {
-    setStatuses(statuses.filter((s) => s !== status));
+  const handleRemoveStatus = (statusName: string) => {
+    setStatuses(statuses.filter(status => status.name !== statusName));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +131,13 @@ export function ChannelDialog({ channel, open, onOpenChange, onSave }: ChannelDi
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
-    setStatuses(items);
+    // Update indexes after reordering
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      index
+    }));
+    
+    setStatuses(updatedItems);
   };
 
   return (
@@ -183,7 +211,7 @@ export function ChannelDialog({ channel, open, onOpenChange, onSave }: ChannelDi
                       className="flex flex-wrap gap-2"
                     >
                       {statuses.map((status, index) => (
-                        <Draggable key={status} draggableId={status} index={index}>
+                        <Draggable key={status.name} draggableId={status.name} index={index}>
                           {(provided) => (
                             <Badge
                               variant="secondary"
@@ -192,13 +220,13 @@ export function ChannelDialog({ channel, open, onOpenChange, onSave }: ChannelDi
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                             >
-                              {status}
+                              {status.name}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-foreground"
-                                onClick={() => handleRemoveStatus(status)}
+                                onClick={() => handleRemoveStatus(status.name)}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
