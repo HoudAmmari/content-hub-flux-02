@@ -254,13 +254,15 @@ export function AppSidebar ({
           <SidebarMenu>
             {channels.map((channel) => (
               <SidebarMenuItem key={channel.id}>
-                <SidebarMenuButton
-                  className="text-muted-foreground hover:bg-muted/80"
-                  onClick={() => handleChannelClick(channel)}
+                <NavLink
+                  key={channel.id}
+                  href={`/channels/${channel.id}`}
+                  className="px-4 py-2"
                 >
                   <span>{channel.name}</span>
-                </SidebarMenuButton>
+                </NavLink>
               </SidebarMenuItem>
+
             ))}
             <SidebarMenuItem>
               <SidebarMenuButton
