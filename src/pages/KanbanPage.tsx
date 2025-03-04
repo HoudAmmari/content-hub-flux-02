@@ -105,48 +105,44 @@ export function KanbanPage() {
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    const { source, destination, draggableId } = result;
-    
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
-      return;
-    }
+    if (!result.destination) return;
 
-    console.log("Drag ended:", { source, destination, draggableId });
-    
-    setCards(prevCards => 
-      prevCards.map(card => 
+    const { source, destination, draggableId } = result;
+
+    if (source.droppableId === destination.droppableId && 
+        source.index === destination.index) return;
+
+    setCards((prevCards) =>
+      prevCards.map((card) =>
         card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
 
     try {
-      const cardToUpdate = cards.find(card => card.id === draggableId);
+      const cardToUpdate = cards.find((card) => card.id === draggableId);
       if (cardToUpdate) {
         await contentService.updateContent(draggableId, {
-          status: destination.droppableId
+          status: destination.droppableId,
         });
 
         toast({
           title: "Conteúdo atualizado",
-          description: "Status atualizado com sucesso."
+          description: "Status atualizado com sucesso.",
         });
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      
-      setCards(prevCards => 
-        prevCards.map(card => 
-          card.id === draggableId ? { ...card, status: source.droppableId } : card
-        )
-      );
-      
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status.",
-        variant: "destructive"
+        variant: "destructive",
       });
+
+      setCards((prevCards) =>
+        prevCards.map((card) =>
+          card.id === draggableId ? { ...card, status: source.droppableId } : card
+        )
+      );
     }
   };
 
@@ -165,9 +161,8 @@ export function KanbanPage() {
 
   const renderColumns = () => {
     if (!selectedChannel) return null;
-    
     return selectedChannel.statuses.map((status) => (
-      <div key={status.name} className="shrink-0 w-64">
+      <div key={status.index} className="shrink-0 w-64">
         <KanbanColumn
           status={status}
           title={status.name}
