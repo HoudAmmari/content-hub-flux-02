@@ -49,7 +49,7 @@ export function KanbanColumn({ status, title, children, droppableId }: KanbanCol
             </div>
           </div>
         </CardHeader>
-        <Droppable droppableId={droppableId}>
+        <Droppable droppableId={status.name}>
           {(provided, snapshot) => (
             <CardContent
               className={cn(

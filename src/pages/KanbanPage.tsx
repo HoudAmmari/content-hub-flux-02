@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -33,8 +32,6 @@ export function KanbanPage() {
   const [showEpics, setShowEpics] = useState(false);
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCards, setSelectedCards] = useState<string[]>([]);
-  const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChannels();
@@ -157,49 +154,6 @@ export function KanbanPage() {
     setShowEpics(show);
   };
 
-  const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
-    if (event.ctrlKey || event.metaKey) {
-      // Add or remove single card with Ctrl/Cmd key
-      setSelectedCards(prev => 
-        prev.includes(cardId) 
-          ? prev.filter(id => id !== cardId) 
-          : [...prev, cardId]
-      );
-      setLastSelectedCard(cardId);
-    } else if (event.shiftKey && lastSelectedCard) {
-      // Select range of cards with Shift key
-      const allColumnCards = getColumnCardsFromId(cardId);
-      const currentIndex = allColumnCards.findIndex(card => card.id === cardId);
-      const lastIndex = allColumnCards.findIndex(card => card.id === lastSelectedCard);
-      
-      if (currentIndex >= 0 && lastIndex >= 0) {
-        const start = Math.min(currentIndex, lastIndex);
-        const end = Math.max(currentIndex, lastIndex);
-        
-        const rangeIds = allColumnCards
-          .slice(start, end + 1)
-          .map(card => card.id);
-        
-        setSelectedCards(prev => {
-          // Combine existing selections with new range, avoiding duplicates
-          const newSelection = [...new Set([...prev, ...rangeIds])];
-          return newSelection;
-        });
-      }
-    } else {
-      // Single selection (no modifier keys)
-      setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
-      setLastSelectedCard(cardId);
-    }
-  };
-
-  const getColumnCardsFromId = (cardId: string) => {
-    const card = [...cards, ...epics].find(c => c.id === cardId);
-    if (!card) return [];
-    
-    return getColumnCards(card.status);
-  };
-
   const getColumnCards = (status: string) => {
     const columnCards = cards.filter((card) => card.status === status);
     if (showEpics) {
@@ -207,10 +161,6 @@ export function KanbanPage() {
       return [...columnCards, ...epicCards];
     }
     return columnCards;
-  };
-
-  const isCardSelected = (cardId: string) => {
-    return selectedCards.includes(cardId);
   };
 
   const renderColumns = () => {
@@ -229,8 +179,6 @@ export function KanbanPage() {
               card={card}
               index={index}
               onUpdate={fetchContents}
-              isSelected={isCardSelected(card.id)}
-              onSelect={(e) => handleCardSelect(card.id, e)}
             />
           ))}
         </KanbanColumn>
