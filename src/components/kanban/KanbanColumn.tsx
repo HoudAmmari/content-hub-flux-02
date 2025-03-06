@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   droppableId: string;
 }
 
-export function KanbanColumn({ status, title, children, droppableId }: KanbanColumnProps) {
+export function KanbanColumn ({ status, title, children, droppableId }: KanbanColumnProps) {
   const { t } = useTranslation();
 
   const getColumnColor = (id: string) => {
