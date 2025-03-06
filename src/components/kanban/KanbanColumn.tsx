@@ -53,7 +53,7 @@ export function KanbanColumn({ status, title, children, droppableId }: KanbanCol
           {(provided, snapshot) => (
             <CardContent
               className={cn(
-                "flex-1 overflow-auto space-y-2 transition-colors",
+                "flex-1 overflow-auto space-y-2 transition-colors select-none",
                 snapshot.isDraggingOver && "bg-accent/50"
               )}
               ref={provided.innerRef}
