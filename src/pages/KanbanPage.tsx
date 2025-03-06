@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,8 @@ export function KanbanPage() {
   const [showEpics, setShowEpics] = useState(false);
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChannels();
@@ -105,49 +108,96 @@ export function KanbanPage() {
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
-
     const { source, destination, draggableId } = result;
+    
+    if (!destination || 
+        (source.droppableId === destination.droppableId && 
+         source.index === destination.index)) {
+      return;
+    }
 
-    if (source.droppableId === destination.droppableId && 
-        source.index === destination.index) return;
-
-    setCards((prevCards) =>
-      prevCards.map((card) =>
+    console.log("Drag ended:", { source, destination, draggableId });
+    
+    setCards(prevCards => 
+      prevCards.map(card => 
         card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
 
     try {
-      const cardToUpdate = cards.find((card) => card.id === draggableId);
+      const cardToUpdate = cards.find(card => card.id === draggableId);
       if (cardToUpdate) {
         await contentService.updateContent(draggableId, {
-          status: destination.droppableId,
+          status: destination.droppableId
         });
 
         toast({
           title: "Conteúdo atualizado",
-          description: "Status atualizado com sucesso.",
+          description: "Status atualizado com sucesso."
         });
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status.",
-        variant: "destructive",
-      });
-
-      setCards((prevCards) =>
-        prevCards.map((card) =>
+      
+      setCards(prevCards => 
+        prevCards.map(card => 
           card.id === draggableId ? { ...card, status: source.droppableId } : card
         )
       );
+      
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleShowEpicsChange = (show: boolean) => {
     setShowEpics(show);
+  };
+
+  const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      // Add or remove single card with Ctrl/Cmd key
+      setSelectedCards(prev => 
+        prev.includes(cardId) 
+          ? prev.filter(id => id !== cardId) 
+          : [...prev, cardId]
+      );
+      setLastSelectedCard(cardId);
+    } else if (event.shiftKey && lastSelectedCard) {
+      // Select range of cards with Shift key
+      const allColumnCards = getColumnCardsFromId(cardId);
+      const currentIndex = allColumnCards.findIndex(card => card.id === cardId);
+      const lastIndex = allColumnCards.findIndex(card => card.id === lastSelectedCard);
+      
+      if (currentIndex >= 0 && lastIndex >= 0) {
+        const start = Math.min(currentIndex, lastIndex);
+        const end = Math.max(currentIndex, lastIndex);
+        
+        const rangeIds = allColumnCards
+          .slice(start, end + 1)
+          .map(card => card.id);
+        
+        setSelectedCards(prev => {
+          // Combine existing selections with new range, avoiding duplicates
+          const newSelection = [...new Set([...prev, ...rangeIds])];
+          return newSelection;
+        });
+      }
+    } else {
+      // Single selection (no modifier keys)
+      setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
+      setLastSelectedCard(cardId);
+    }
+  };
+
+  const getColumnCardsFromId = (cardId: string) => {
+    const card = [...cards, ...epics].find(c => c.id === cardId);
+    if (!card) return [];
+    
+    return getColumnCards(card.status);
   };
 
   const getColumnCards = (status: string) => {
@@ -159,10 +209,15 @@ export function KanbanPage() {
     return columnCards;
   };
 
+  const isCardSelected = (cardId: string) => {
+    return selectedCards.includes(cardId);
+  };
+
   const renderColumns = () => {
     if (!selectedChannel) return null;
+    
     return selectedChannel.statuses.map((status) => (
-      <div key={status.index} className="shrink-0 w-64">
+      <div key={status.name} className="shrink-0 w-64">
         <KanbanColumn
           status={status}
           title={status.name}
@@ -174,6 +229,8 @@ export function KanbanPage() {
               card={card}
               index={index}
               onUpdate={fetchContents}
+              isSelected={isCardSelected(card.id)}
+              onSelect={(e) => handleCardSelect(card.id, e)}
             />
           ))}
         </KanbanColumn>

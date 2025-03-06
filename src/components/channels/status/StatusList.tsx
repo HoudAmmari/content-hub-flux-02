@@ -49,12 +49,14 @@ export function StatusList({ statuses, onRemoveStatus, onReorderStatuses }: Stat
                 <Draggable key={status.name} draggableId={status.name} index={index}>
                   {(provided) => (
                     <div
-                      className="flex items-center bg-muted/50 rounded-md p-2"
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      {...provided.dragHandleProps}
+                      className="flex items-center bg-muted/50 rounded-md p-2 select-none"
                     >
-                      <div className="cursor-move mr-2 text-muted-foreground hover:text-foreground">
+                      <div 
+                        {...provided.dragHandleProps}
+                        className="cursor-move mr-2 text-muted-foreground hover:text-foreground"
+                      >
                         <GripVertical className="h-4 w-4" />
                       </div>
                       <div className="flex-1">
