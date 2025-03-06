@@ -33,8 +33,6 @@ export function KanbanPage() {
   const [showEpics, setShowEpics] = useState(false);
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCards, setSelectedCards] = useState<string[]>([]);
-  const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChannels();
@@ -52,6 +50,7 @@ export function KanbanPage() {
         navigate("/");
       }
     } else if (channels.length > 0) {
+      // Se não houver channelId, selecione o primeiro canal
       setSelectedChannelId(channels[0].id);
       setSelectedChannel(channels[0]);
     }
@@ -108,96 +107,53 @@ export function KanbanPage() {
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    const { source, destination, draggableId } = result;
-    
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
-      return;
-    }
+    if (!result.destination) return;
 
-    console.log("Drag ended:", { source, destination, draggableId });
-    
-    setCards(prevCards => 
-      prevCards.map(card => 
+    const { source, destination, draggableId } = result;
+
+    // Se a origem e o destino são iguais, não faz nada
+    if (source.droppableId === destination.droppableId && 
+        source.index === destination.index) return;
+
+    // Atualiza a UI imediatamente para feedback instantâneo
+    setCards((prevCards) =>
+      prevCards.map((card) =>
         card.id === draggableId ? { ...card, status: destination.droppableId } : card
       )
     );
 
+    // Atualiza no banco de dados
     try {
-      const cardToUpdate = cards.find(card => card.id === draggableId);
+      const cardToUpdate = cards.find((card) => card.id === draggableId);
       if (cardToUpdate) {
         await contentService.updateContent(draggableId, {
-          status: destination.droppableId
+          status: destination.droppableId,
         });
 
         toast({
           title: "Conteúdo atualizado",
-          description: "Status atualizado com sucesso."
+          description: "Status atualizado com sucesso.",
         });
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      
-      setCards(prevCards => 
-        prevCards.map(card => 
-          card.id === draggableId ? { ...card, status: source.droppableId } : card
-        )
-      );
-      
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status.",
-        variant: "destructive"
+        variant: "destructive",
       });
+
+      // Reverte a alteração na UI em caso de erro
+      setCards((prevCards) =>
+        prevCards.map((card) =>
+          card.id === draggableId ? { ...card, status: source.droppableId } : card
+        )
+      );
     }
   };
 
   const handleShowEpicsChange = (show: boolean) => {
     setShowEpics(show);
-  };
-
-  const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
-    if (event.ctrlKey || event.metaKey) {
-      // Add or remove single card with Ctrl/Cmd key
-      setSelectedCards(prev => 
-        prev.includes(cardId) 
-          ? prev.filter(id => id !== cardId) 
-          : [...prev, cardId]
-      );
-      setLastSelectedCard(cardId);
-    } else if (event.shiftKey && lastSelectedCard) {
-      // Select range of cards with Shift key
-      const allColumnCards = getColumnCardsFromId(cardId);
-      const currentIndex = allColumnCards.findIndex(card => card.id === cardId);
-      const lastIndex = allColumnCards.findIndex(card => card.id === lastSelectedCard);
-      
-      if (currentIndex >= 0 && lastIndex >= 0) {
-        const start = Math.min(currentIndex, lastIndex);
-        const end = Math.max(currentIndex, lastIndex);
-        
-        const rangeIds = allColumnCards
-          .slice(start, end + 1)
-          .map(card => card.id);
-        
-        setSelectedCards(prev => {
-          // Combine existing selections with new range, avoiding duplicates
-          const newSelection = [...new Set([...prev, ...rangeIds])];
-          return newSelection;
-        });
-      }
-    } else {
-      // Single selection (no modifier keys)
-      setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
-      setLastSelectedCard(cardId);
-    }
-  };
-
-  const getColumnCardsFromId = (cardId: string) => {
-    const card = [...cards, ...epics].find(c => c.id === cardId);
-    if (!card) return [];
-    
-    return getColumnCards(card.status);
   };
 
   const getColumnCards = (status: string) => {
@@ -209,15 +165,11 @@ export function KanbanPage() {
     return columnCards;
   };
 
-  const isCardSelected = (cardId: string) => {
-    return selectedCards.includes(cardId);
-  };
-
+  // Envolvemos cada coluna em uma <div> com largura fixa para evitar que estiquem a tela toda
   const renderColumns = () => {
     if (!selectedChannel) return null;
-    
     return selectedChannel.statuses.map((status) => (
-      <div key={status.name} className="shrink-0 w-64">
+      <div key={status.index} className="shrink-0 w-64">
         <KanbanColumn
           status={status}
           title={status.name}
@@ -229,8 +181,6 @@ export function KanbanPage() {
               card={card}
               index={index}
               onUpdate={fetchContents}
-              isSelected={isCardSelected(card.id)}
-              onSelect={(e) => handleCardSelect(card.id, e)}
             />
           ))}
         </KanbanColumn>
@@ -240,6 +190,7 @@ export function KanbanPage() {
 
   return (
     <div className="space-y-4 w-full">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <h1 className="text-2xl font-semibold">{selectedChannel?.name || t("kanban.board")}</h1>
@@ -272,6 +223,7 @@ export function KanbanPage() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="mt-6">
         <Tabs defaultValue="kanban">
           <TabsList className="mb-4">
@@ -286,7 +238,9 @@ export function KanbanPage() {
               </div>
             ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
+                {/* Somente esta parte terá scroll horizontal */}
                 <div className="overflow-x-auto max-w-full pb-4">
+                  {/* Usamos flex-nowrap e colunas fixas para forçar o scroll quando excederem a tela */}
                   <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
                     {renderColumns()}
                   </div>

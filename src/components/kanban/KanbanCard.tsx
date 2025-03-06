@@ -48,11 +48,9 @@ interface KanbanCardProps {
   card: Content;
   index: number;
   onUpdate: () => void;
-  isSelected?: boolean;
-  onSelect?: (e: React.MouseEvent) => void;
 }
 
-export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect }: KanbanCardProps) {
+export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -67,6 +65,7 @@ export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect
       month: '2-digit'
     });
   };
+  
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -129,14 +128,6 @@ export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect
       setIsDeleting(false);
     }
   };
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    if (onSelect) {
-      onSelect(e);
-    } else {
-      setIsDetailOpen(true);
-    }
-  };
   
   return (
     <>
@@ -147,12 +138,11 @@ export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "cursor-pointer hover:shadow-md transition-all select-none",
+              "cursor-pointer hover:shadow-md transition-all",
               snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
-              card.isEpic && "border-l-4 border-l-purple-400",
-              isSelected && "ring-2 ring-primary ring-offset-2"
+              card.isEpic && "border-l-4 border-l-purple-400"
             )}
-            onClick={handleCardClick}
+            onClick={() => setIsDetailOpen(true)}
           >
             <CardContent className="p-3 space-y-2">
               <div className="flex justify-between items-start">

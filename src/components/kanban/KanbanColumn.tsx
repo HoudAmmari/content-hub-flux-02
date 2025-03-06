@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   droppableId: string;
 }
 
-export function KanbanColumn({ status, title, children, droppableId }: KanbanColumnProps) {
+export function KanbanColumn ({ status, title, children, droppableId }: KanbanColumnProps) {
   const { t } = useTranslation();
 
   const getColumnColor = (id: string) => {
@@ -53,7 +53,7 @@ export function KanbanColumn({ status, title, children, droppableId }: KanbanCol
           {(provided, snapshot) => (
             <CardContent
               className={cn(
-                "flex-1 overflow-auto space-y-2 transition-colors select-none",
+                "flex-1 overflow-auto space-y-2 transition-colors",
                 snapshot.isDraggingOver && "bg-accent/50"
               )}
               ref={provided.innerRef}
