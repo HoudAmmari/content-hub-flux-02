@@ -137,7 +137,7 @@ export function KanbanBoard({
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto max-w-full pb-4">
         <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
-          {selectedChannel?.statuses.map((status) => (
+          {selectedChannel?.statuses?.map((status) => (
             <div key={status.name} className="shrink-0 w-64">
               <KanbanColumn
                 status={status}

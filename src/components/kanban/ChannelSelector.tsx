@@ -20,9 +20,13 @@ export function ChannelSelector({ channels, onChannelSelect }: ChannelSelectorPr
       if (channel) {
         onChannelSelect(channel);
       } else {
-        navigate("/");
+        // Only navigate if there are channels available
+        if (channels.length > 0) {
+          navigate(`/channels/${channels[0].id}`);
+        }
       }
     } else if (channels.length > 0) {
+      // Default to first channel
       onChannelSelect(channels[0]);
       navigate(`/channels/${channels[0].id}`);
     }
