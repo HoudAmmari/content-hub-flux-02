@@ -11,9 +11,10 @@ interface KanbanColumnProps {
   title: string;
   children: ReactNode;
   droppableId: string;
+  type?: string;
 }
 
-export function KanbanColumn({ status, title, children, droppableId }: KanbanColumnProps) {
+export function KanbanColumn({ status, title, children, droppableId, type = "DEFAULT" }: KanbanColumnProps) {
   const { t } = useTranslation();
 
   const getColumnColor = (id: string) => {
@@ -49,7 +50,7 @@ export function KanbanColumn({ status, title, children, droppableId }: KanbanCol
             </div>
           </div>
         </CardHeader>
-        <Droppable droppableId={droppableId}>
+        <Droppable droppableId={droppableId} type={type}>
           {(provided, snapshot) => (
             <CardContent
               className={cn(

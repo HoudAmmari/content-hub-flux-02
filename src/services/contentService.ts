@@ -89,6 +89,13 @@ export const contentService = {
     try {
       const id = uuidv4();
       const now = new Date().toISOString();
+      
+      // Obter o próximo índice para o status
+      const contentsInStatus = Array.from(db.values()).filter(
+        item => item.status === content.status && item.channelId === content.channelId
+      );
+      const nextIndex = contentsInStatus.length;
+      
       const newContent: Content = {
         id,
         title: content.title,
@@ -98,6 +105,7 @@ export const contentService = {
         tags: content.tags || [],
         dueDate: content.dueDate || now,
         isEpic: content.isEpic || false,
+        index: content.index || nextIndex,
         createdAt: now,
         updatedAt: now
       };
@@ -126,6 +134,7 @@ export const contentService = {
         tags: content.tags ?? existingContent.tags,
         dueDate: content.dueDate ?? existingContent.dueDate,
         isEpic: content.isEpic ?? existingContent.isEpic,
+        index: content.index ?? existingContent.index,
         updatedAt: now
       };
 
@@ -139,6 +148,22 @@ export const contentService = {
       return updatedContent;
     } catch (error) {
       console.error(`Erro ao atualizar conteúdo ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Atualizar os índices de múltiplos conteúdos
+  async updateContentIndices(contentUpdates: { id: string, index: number }[]): Promise<boolean> {
+    try {
+      for (const update of contentUpdates) {
+        const existingContent = await this.getContentById(update.id);
+        if (existingContent) {
+          await this.updateContent(update.id, { index: update.index });
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar índices:', error);
       throw error;
     }
   },

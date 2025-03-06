@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -85,13 +84,29 @@ export function KanbanPage() {
       const contentsData = await contentService.getContentsByChannel(
         selectedChannel.id
       );
-      setCards(contentsData);
+      
+      const sortedContents = contentsData.sort((a, b) => {
+        if (a.status === b.status) {
+          return (a.index ?? 0) - (b.index ?? 0);
+        }
+        return 0;
+      });
+      
+      setCards(sortedContents);
 
       if (showEpics) {
         const epicsData = await contentService.getEpicsByChannel(
           selectedChannel.id
         );
-        setEpics(epicsData);
+        
+        const sortedEpics = epicsData.sort((a, b) => {
+          if (a.status === b.status) {
+            return (a.index ?? 0) - (b.index ?? 0);
+          }
+          return 0;
+        });
+        
+        setEpics(sortedEpics);
       } else {
         setEpics([]);
       }
@@ -110,46 +125,118 @@ export function KanbanPage() {
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
+    if (!destination) {
       return;
     }
 
     console.log("Drag ended:", { source, destination, draggableId });
     
-    setCards(prevCards => 
-      prevCards.map(card => 
-        card.id === draggableId ? { ...card, status: destination.droppableId } : card
-      )
-    );
-
-    try {
-      const cardToUpdate = cards.find(card => card.id === draggableId);
-      if (cardToUpdate) {
+    if (source.droppableId === destination.droppableId) {
+      const columnCards = [...cards, ...epics].filter(
+        card => card.status === source.droppableId
+      ).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      const draggedCard = columnCards.find(card => card.id === draggableId);
+      if (!draggedCard) return;
+      
+      const newColumnCards = [...columnCards];
+      newColumnCards.splice(source.index, 1);
+      newColumnCards.splice(destination.index, 0, draggedCard);
+      
+      const updates = newColumnCards.map((card, index) => ({
+        id: card.id,
+        index
+      }));
+      
+      const updatedCards = cards.map(card => {
+        const update = updates.find(u => u.id === card.id);
+        if (update) {
+          return { ...card, index: update.index };
+        }
+        return card;
+      });
+      
+      const updatedEpics = epics.map(epic => {
+        const update = updates.find(u => u.id === epic.id);
+        if (update) {
+          return { ...epic, index: update.index };
+        }
+        return epic;
+      });
+      
+      setCards(updatedCards);
+      setEpics(updatedEpics);
+      
+      try {
+        await contentService.updateContentIndices(updates);
+        toast({
+          title: "Sucesso",
+          description: "Ordem dos cards atualizada com sucesso."
+        });
+      } catch (error) {
+        console.error("Erro ao reordenar cards:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar a nova ordem.",
+          variant: "destructive"
+        });
+        fetchContents();
+      }
+    } 
+    else {
+      const allCards = [...cards, ...epics];
+      const movedCard = allCards.find(card => card.id === draggableId);
+      
+      if (!movedCard) return;
+      
+      const destinationCards = allCards
+        .filter(card => card.status === destination.droppableId)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      destinationCards.splice(destination.index, 0, {
+        ...movedCard,
+        status: destination.droppableId
+      });
+      
+      const destinationUpdates = destinationCards.map((card, index) => ({
+        id: card.id,
+        index
+      }));
+      
+      if (movedCard.isEpic) {
+        setEpics(prev => prev.map(epic => 
+          epic.id === draggableId 
+            ? { ...epic, status: destination.droppableId } 
+            : epic
+        ));
+      } else {
+        setCards(prev => prev.map(card => 
+          card.id === draggableId 
+            ? { ...card, status: destination.droppableId } 
+            : card
+        ));
+      }
+      
+      try {
         await contentService.updateContent(draggableId, {
           status: destination.droppableId
         });
-
+        
+        await contentService.updateContentIndices(destinationUpdates);
+        
         toast({
           title: "Conteúdo atualizado",
-          description: "Status atualizado com sucesso."
+          description: "Status e posição atualizados com sucesso."
         });
+      } catch (error) {
+        console.error("Erro ao atualizar status:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar o status ou a posição.",
+          variant: "destructive"
+        });
+        fetchContents();
       }
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      
-      setCards(prevCards => 
-        prevCards.map(card => 
-          card.id === draggableId ? { ...card, status: source.droppableId } : card
-        )
-      );
-      
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -159,7 +246,6 @@ export function KanbanPage() {
 
   const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
     if (event.ctrlKey || event.metaKey) {
-      // Add or remove single card with Ctrl/Cmd key
       setSelectedCards(prev => 
         prev.includes(cardId) 
           ? prev.filter(id => id !== cardId) 
@@ -167,7 +253,6 @@ export function KanbanPage() {
       );
       setLastSelectedCard(cardId);
     } else if (event.shiftKey && lastSelectedCard) {
-      // Select range of cards with Shift key
       const allColumnCards = getColumnCardsFromId(cardId);
       const currentIndex = allColumnCards.findIndex(card => card.id === cardId);
       const lastIndex = allColumnCards.findIndex(card => card.id === lastSelectedCard);
@@ -181,13 +266,11 @@ export function KanbanPage() {
           .map(card => card.id);
         
         setSelectedCards(prev => {
-          // Combine existing selections with new range, avoiding duplicates
           const newSelection = [...new Set([...prev, ...rangeIds])];
           return newSelection;
         });
       }
     } else {
-      // Single selection (no modifier keys)
       setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
       setLastSelectedCard(cardId);
     }
@@ -201,9 +284,15 @@ export function KanbanPage() {
   };
 
   const getColumnCards = (status: string) => {
-    const columnCards = cards.filter((card) => card.status === status);
+    const columnCards = cards
+      .filter((card) => card.status === status)
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
     if (showEpics) {
-      const epicCards = epics.filter((epic) => epic.status === status);
+      const epicCards = epics
+        .filter((epic) => epic.status === status)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+        
       return [...columnCards, ...epicCards];
     }
     return columnCards;
@@ -222,6 +311,7 @@ export function KanbanPage() {
           status={status}
           title={status.name}
           droppableId={status.name}
+          type="CARD"
         >
           {getColumnCards(status.name).map((card, index) => (
             <KanbanCard

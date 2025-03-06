@@ -1,4 +1,3 @@
-
 // Tipos para os modelos de dados
 
 export interface Content {
@@ -11,6 +10,7 @@ export interface Content {
   content?: string;
   dueDate: string;
   isEpic?: boolean;
+  index?: number;
   createdAt?: string;
   updatedAt?: string;
 }
