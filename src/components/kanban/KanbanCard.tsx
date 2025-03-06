@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -138,11 +139,15 @@ export function KanbanCard({ card, index, onUpdate }: KanbanCardProps) {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "cursor-pointer hover:shadow-md transition-all",
+              "cursor-pointer hover:shadow-md transition-all select-none",
               snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
               card.isEpic && "border-l-4 border-l-purple-400"
             )}
-            onClick={() => setIsDetailOpen(true)}
+            onClick={(e) => {
+              if (!snapshot.isDragging) {
+                setIsDetailOpen(true);
+              }
+            }}
           >
             <CardContent className="p-3 space-y-2">
               <div className="flex justify-between items-start">
