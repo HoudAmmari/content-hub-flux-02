@@ -92,6 +92,12 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
     }
   };
 
+  // Function to clear selection when clicking outside cards
+  const clearSelectionOnOutsideClick = () => {
+    setSelectedCards([]);
+    setLastSelectedCard(null);
+  };
+
   // Clear selection when cards change
   useEffect(() => {
     setSelectedCards([]);
@@ -103,6 +109,7 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
     lastSelectedCard,
     handleCardSelect,
     setSelectedCards,
-    setLastSelectedCard
+    setLastSelectedCard,
+    clearSelectionOnOutsideClick
   };
 }

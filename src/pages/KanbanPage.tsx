@@ -27,7 +27,7 @@ export function KanbanPage() {
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { selectedCards, handleCardSelect } = useCardSelection(cards, epics);
+  const { selectedCards, handleCardSelect, clearSelectionOnOutsideClick } = useCardSelection(cards, epics);
 
   useEffect(() => {
     fetchChannels();
@@ -38,6 +38,22 @@ export function KanbanPage() {
       fetchContents();
     }
   }, [selectedChannelId, showEpics]);
+
+  // Add effect to clear selection when clicking outside the board
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      // Check if click is outside the board area
+      const boardElement = document.querySelector('.kanban-board-background');
+      if (boardElement && !boardElement.contains(e.target as Node)) {
+        clearSelectionOnOutsideClick();
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [clearSelectionOnOutsideClick]);
 
   const fetchChannels = async () => {
     try {
