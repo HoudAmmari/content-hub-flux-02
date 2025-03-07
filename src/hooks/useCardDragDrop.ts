@@ -23,8 +23,6 @@ export function useCardDragDrop({
   const getStatusFromDroppableId = (droppableId: string): string => {
     // If the droppableId follows our format (status-name-with-dashes), extract the original name
     if (droppableId.startsWith('status-')) {
-      // This is a simplification, in a real app you would map back to original status names
-      // For now, we'll assume the channel statuses are available in this component
       const statusMatch = droppableId.match(/^status-(.+)$/);
       if (statusMatch && statusMatch[1]) {
         // Find the matching status from available statuses
@@ -42,8 +40,15 @@ export function useCardDragDrop({
     }
     
     // If we can't determine the original status, return the droppableId as is
-    // (fallback for backward compatibility)
     return droppableId;
+  };
+
+  // Extract the card ID from draggableId in case it has a prefix
+  const getCardIdFromDraggableId = (draggableId: string): string => {
+    if (draggableId.startsWith('card-')) {
+      return draggableId.substring(5);
+    }
+    return draggableId;
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -53,20 +58,33 @@ export function useCardDragDrop({
       return;
     }
 
-    // Convert droppableIds to actual status names
+    // Convert IDs to actual status names and card IDs
     const sourceStatus = getStatusFromDroppableId(source.droppableId);
     const destinationStatus = getStatusFromDroppableId(destination.droppableId);
+    const cardId = getCardIdFromDraggableId(draggableId);
 
-    const isMultiCardMove = selectedCards.includes(draggableId) && selectedCards.length > 1;
+    // Check if this card is part of a multi-selection
+    const isMultiCardMove = selectedCards.includes(cardId) && selectedCards.length > 1;
     
-    if (isMultiCardMove) {
-      await moveSelectedCards(sourceStatus, destinationStatus, destination.index);
-    } else {
-      if (sourceStatus === destinationStatus) {
-        await handleSameColumnReorder(sourceStatus, source.index, destination.index, draggableId);
+    try {
+      if (isMultiCardMove) {
+        await moveSelectedCards(sourceStatus, destinationStatus, destination.index);
       } else {
-        await handleColumnChange(draggableId, sourceStatus, destinationStatus, destination.index);
+        if (sourceStatus === destinationStatus) {
+          await handleSameColumnReorder(sourceStatus, source.index, destination.index, cardId);
+        } else {
+          await handleColumnChange(cardId, sourceStatus, destinationStatus, destination.index);
+        }
       }
+    } catch (error) {
+      console.error("Erro durante o drag and drop:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao mover o(s) card(s).",
+        variant: "destructive"
+      });
+      // Refresh the board to ensure UI consistency
+      onCardsUpdate();
     }
   };
 
@@ -172,6 +190,7 @@ export function useCardDragDrop({
         .filter(card => card.status === destinationStatus && !selectedCards.includes(card.id))
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
+      // Insert all selected cards at the destination index
       for (let i = 0; i < selectedCardObjects.length; i++) {
         destinationCards.splice(destinationStartIndex + i, 0, {
           ...selectedCardObjects[i],
@@ -184,12 +203,14 @@ export function useCardDragDrop({
         index
       }));
       
+      // First update the status of all selected cards
       for (const cardId of selectedCards) {
         await contentService.updateContent(cardId, {
           status: destinationStatus
         });
       }
       
+      // Then update all indices
       await contentService.updateContentIndices(destinationUpdates);
       
       toast({

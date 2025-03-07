@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -109,9 +108,12 @@ export function KanbanCard({
     }
   };
   
+  // Ensure each draggable has a valid ID by using a deterministic approach
+  const draggableId = `card-${card.id}`;
+  
   return (
     <>
-      <Draggable draggableId={card.id} index={index}>
+      <Draggable draggableId={draggableId} index={index}>
         {(provided, snapshot) => (
           <Card 
             ref={(element) => {
@@ -122,12 +124,12 @@ export function KanbanCard({
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
+              "cursor-pointer hover:shadow-md transition-all select-none kanban-card mb-2",
               snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
               snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
               isSelected && "ring-2 ring-primary ring-offset-2",
-              snapshot.isDragging && isSelected && "invisible"
+              isSelected && snapshot.isDragging && selectedCards.length > 1 ? "opacity-50" : ""
             )}
             onClick={handleCardClick}
           >

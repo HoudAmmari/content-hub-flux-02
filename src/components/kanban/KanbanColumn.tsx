@@ -1,29 +1,10 @@
 
-import { ReactNode } from "react";
+import { ReactNode, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Droppable, DroppableProps } from "react-beautiful-dnd";
+import { Droppable } from "react-beautiful-dnd";
 import { ChannelStatus } from "@/models/types";
-
-// Custom wrapper to correctly handle the defaultProps deprecation warning
-// using JavaScript default parameters instead
-function CustomDroppable({ 
-  droppableId, 
-  children, 
-  type = "DEFAULT", // Use default parameter instead of defaultProps
-  ...rest 
-}: DroppableProps) {
-  return (
-    <Droppable 
-      droppableId={droppableId} 
-      type={type} 
-      {...rest}
-    >
-      {children}
-    </Droppable>
-  );
-}
 
 interface KanbanColumnProps {
   status: ChannelStatus;
@@ -75,7 +56,7 @@ export function KanbanColumn({
             </div>
           </div>
         </CardHeader>
-        <CustomDroppable droppableId={droppableId} type={type}>
+        <Droppable droppableId={droppableId} type={type}>
           {(provided, snapshot) => (
             <CardContent
               className={cn(
@@ -94,7 +75,7 @@ export function KanbanColumn({
               )}
             </CardContent>
           )}
-        </CustomDroppable>
+        </Droppable>
       </Card>
     </div>
   );
