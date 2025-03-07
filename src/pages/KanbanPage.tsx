@@ -12,11 +12,13 @@ import { KanbanHeader } from "@/components/kanban/KanbanHeader";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ChannelSelector } from "@/components/kanban/ChannelSelector";
 import { useCardSelection } from "@/hooks/useCardSelection";
+import { useParams } from "react-router-dom";
 
 export function KanbanPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { channelId } = useParams<{ channelId: string }>();
 
   const [cards, setCards] = useState<Content[]>([]);
   const [epics, setEpics] = useState<Content[]>([]);
@@ -30,9 +32,25 @@ export function KanbanPage() {
   
   const { selectedCards, handleCardSelect, clearSelectionOnOutsideClick } = useCardSelection(cards, epics);
 
+  // Load channels on component mount
   useEffect(() => {
     fetchChannels();
   }, []);
+
+  // Set selected channel when channelId param changes
+  useEffect(() => {
+    if (channelId && channels.length > 0) {
+      const channel = channels.find(c => c.id === channelId);
+      if (channel) {
+        setSelectedChannelId(channel.id);
+        setSelectedChannel(channel);
+      }
+    } else if (channels.length > 0 && !selectedChannel) {
+      // Default to first channel if none selected
+      setSelectedChannelId(channels[0].id);
+      setSelectedChannel(channels[0]);
+    }
+  }, [channelId, channels, selectedChannel]);
 
   // Add effect to clear selection when clicking outside the board
   useEffect(() => {
@@ -50,7 +68,7 @@ export function KanbanPage() {
     };
   }, [clearSelectionOnOutsideClick]);
 
-  // Carregar tamanho da página do localStorage
+  // Load page size from localStorage
   useEffect(() => {
     const savedPageSize = localStorage.getItem('kanbanPageSize');
     if (savedPageSize) {
@@ -58,11 +76,11 @@ export function KanbanPage() {
     }
   }, []);
 
-  // Atualizar o estado de loading quando o canal muda
+  // Update loading state when channel changes
   useEffect(() => {
     if (selectedChannelId) {
       setIsLoading(true);
-      // Definir um timeout curto para simular o carregamento inicial
+      // Set a short timeout to simulate initial loading
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 500);
@@ -79,6 +97,18 @@ export function KanbanPage() {
     try {
       const data = await channelService.getAllChannels();
       setChannels(data);
+      
+      // Select the first channel if none is selected yet and no channelId in URL
+      if (data.length > 0 && !selectedChannel && !channelId) {
+        setSelectedChannelId(data[0].id);
+        setSelectedChannel(data[0]);
+      } else if (channelId) {
+        const channel = data.find(c => c.id === channelId);
+        if (channel) {
+          setSelectedChannelId(channel.id);
+          setSelectedChannel(channel);
+        }
+      }
     } catch (error) {
       console.error("Erro ao buscar canais:", error);
       toast({
@@ -98,11 +128,17 @@ export function KanbanPage() {
     setSelectedChannel(channel);
   };
 
+  const refreshData = () => {
+    setIsLoading(true);
+    // The actual data fetching is now handled by the KanbanBoard component
+  };
+
   return (
     <div className="space-y-4 w-full">
       <ChannelSelector 
         channels={channels} 
-        onChannelSelect={handleChannelSelect} 
+        onChannelSelect={handleChannelSelect}
+        selectedChannelId={selectedChannelId}
       />
       
       <KanbanHeader 
@@ -131,10 +167,10 @@ export function KanbanPage() {
             ) : (
               <KanbanBoard
                 selectedChannel={selectedChannel}
-                cards={[]} // Agora os cards são buscados diretamente no KanbanColumns
-                epics={[]} // Agora os epics são buscados diretamente no KanbanColumns
+                cards={cards} 
+                epics={epics}
                 showEpics={showEpics}
-                onCardsUpdate={() => setIsLoading(true)} // Apenas aciona o estado de loading
+                onCardsUpdate={refreshData} 
                 selectedCards={selectedCards}
                 onCardSelect={handleCardSelect}
                 pageSize={pageSize}
@@ -156,7 +192,7 @@ export function KanbanPage() {
         open={openNewContent}
         onOpenChange={setOpenNewContent}
         channel={selectedChannel}
-        onSuccess={() => setIsLoading(true)}
+        onSuccess={refreshData}
       />
     </div>
   );

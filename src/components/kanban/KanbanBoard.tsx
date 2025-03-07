@@ -10,6 +10,7 @@ import { useCardDragDrop } from "@/hooks/useCardDragDrop";
 import { DragPreviewWrapper } from "./DragPreviewWrapper";
 import { KanbanColumns } from "./KanbanColumns";
 import { DropResult } from "react-beautiful-dnd";
+import { contentService } from "@/services/contentService";
 
 interface KanbanBoardProps {
   selectedChannel: Channel | null;
@@ -64,9 +65,40 @@ export function KanbanBoard({
     }
   }, [refreshColumns]);
   
+  // Fetch cards and epics from the service when needed
+  const [boardCards, setBoardCards] = useState<Content[]>([]);
+  const [boardEpics, setBoardEpics] = useState<Content[]>([]);
+  
+  useEffect(() => {
+    if (selectedChannel) {
+      const fetchData = async () => {
+        try {
+          // We'll just fetch basic data here, KanbanColumns will handle pagination
+          const { contents } = await contentService.getContentsByChannel(
+            selectedChannel.id,
+            false,
+            { pageSize: 10 }
+          );
+          
+          const { epics } = await contentService.getEpicsByChannel(
+            selectedChannel.id,
+            { pageSize: 10 }
+          );
+          
+          setBoardCards(contents);
+          setBoardEpics(epics);
+        } catch (error) {
+          console.error("Error fetching kanban data:", error);
+        }
+      };
+      
+      fetchData();
+    }
+  }, [selectedChannel]);
+  
   const { handleDragEnd } = useCardDragDrop({ 
-    cards, 
-    epics, 
+    cards: boardCards, 
+    epics: boardEpics, 
     selectedCards, 
     onCardsUpdate: handleOptimisticUpdate 
   });
@@ -168,8 +200,8 @@ export function KanbanBoard({
         
         <KanbanColumns 
           selectedChannel={selectedChannel}
-          cards={cards}
-          epics={epics}
+          cards={boardCards}
+          epics={boardEpics}
           showEpics={showEpics}
           onCardsUpdate={handleOptimisticUpdate}
           selectedCards={selectedCards}

@@ -1,36 +1,51 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { Channel } from "@/models/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 interface ChannelSelectorProps {
   channels: Channel[];
   onChannelSelect: (channel: Channel) => void;
+  selectedChannelId?: string;
 }
 
-export function ChannelSelector({ channels, onChannelSelect }: ChannelSelectorProps) {
-  const { channelId } = useParams();
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    if (channels.length === 0) return;
+export function ChannelSelector({ 
+  channels, 
+  onChannelSelect,
+  selectedChannelId 
+}: ChannelSelectorProps) {
+  const { t } = useTranslation();
 
-    if (channelId) {
-      const channel = channels.find((c) => c.id === channelId);
-      if (channel) {
-        onChannelSelect(channel);
-      } else {
-        // Only navigate if there are channels available
-        if (channels.length > 0) {
-          navigate(`/channels/${channels[0].id}`);
-        }
-      }
-    } else if (channels.length > 0) {
-      // Default to first channel
-      onChannelSelect(channels[0]);
-      navigate(`/channels/${channels[0].id}`);
+  const handleChannelChange = (channelId: string) => {
+    const selectedChannel = channels.find((channel) => channel.id === channelId);
+    if (selectedChannel) {
+      onChannelSelect(selectedChannel);
     }
-  }, [channels, channelId, navigate, onChannelSelect]);
+  };
 
-  return null; // This is a logic-only component
+  return (
+    <div className="w-full max-w-xs">
+      <Select 
+        value={selectedChannelId || ''} 
+        onValueChange={handleChannelChange}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={t("channels.selectChannel")} />
+        </SelectTrigger>
+        <SelectContent>
+          {channels.map((channel) => (
+            <SelectItem key={channel.id} value={channel.id}>
+              {channel.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
