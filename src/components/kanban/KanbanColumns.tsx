@@ -43,35 +43,43 @@ export function KanbanColumns({
     return selectedCards.includes(cardId);
   };
 
-  // Create a consistent droppable ID from the status name
+  // Create a safer droppable ID that's consistent
   const createDroppableId = (statusName: string) => {
-    return `status-${statusName.replace(/\s+/g, '-').toLowerCase()}`;
+    // Use a simple alphanumeric representation 
+    return `status-${statusName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
   };
+
+  console.log("Channel statuses:", selectedChannel?.statuses?.map(s => s.name));
 
   return (
     <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
-      {selectedChannel?.statuses?.map((status) => (
-        <div key={status.name} className="shrink-0 w-64">
-          <KanbanColumn
-            status={status}
-            title={status.name}
-            droppableId={createDroppableId(status.name)}
-            type="CARD"
-          >
-            {getColumnCards(status.name).map((card, index) => (
-              <KanbanCard
-                key={card.id}
-                card={card}
-                index={index}
-                onUpdate={onCardsUpdate}
-                isSelected={isCardSelected(card.id)}
-                onSelect={(e) => onCardSelect(card.id, e)}
-                registerCardPosition={registerCardPosition}
-              />
-            ))}
-          </KanbanColumn>
-        </div>
-      ))}
+      {selectedChannel?.statuses?.map((status) => {
+        const droppableId = createDroppableId(status.name);
+        console.log(`Creating column for status: ${status.name}, droppableId: ${droppableId}`);
+        
+        return (
+          <div key={status.name} className="shrink-0 w-64">
+            <KanbanColumn
+              status={status}
+              title={status.name}
+              droppableId={droppableId}
+              type="CARD"
+            >
+              {getColumnCards(status.name).map((card, index) => (
+                <KanbanCard
+                  key={card.id}
+                  card={card}
+                  index={index}
+                  onUpdate={onCardsUpdate}
+                  isSelected={isCardSelected(card.id)}
+                  onSelect={(e) => onCardSelect(card.id, e)}
+                  registerCardPosition={registerCardPosition}
+                />
+              ))}
+            </KanbanColumn>
+          </div>
+        );
+      })}
     </div>
   );
 }

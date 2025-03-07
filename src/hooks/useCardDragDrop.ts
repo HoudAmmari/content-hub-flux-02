@@ -21,41 +21,63 @@ export function useCardDragDrop({
 
   // Helper function to convert droppableId back to status name
   const getStatusFromDroppableId = (droppableId: string): string => {
+    console.log(`Getting status from droppableId: ${droppableId}`);
+    
     // If the droppableId follows our format (status-name-with-dashes), extract the original name
     if (droppableId.startsWith('status-')) {
-      const statusMatch = droppableId.match(/^status-(.+)$/);
-      if (statusMatch && statusMatch[1]) {
-        // Find the matching status from available statuses
-        const allCards = [...cards, ...epics];
-        const possibleStatuses = [...new Set(allCards.map(card => card.status))];
+      // Get all possible statuses from cards and epics
+      const allCards = [...cards, ...epics];
+      const allPossibleStatuses = [...new Set(allCards.map(card => card.status))];
+      
+      console.log("All possible statuses:", allPossibleStatuses);
+      
+      // Try to find the matching status by converting each possible status to a droppable ID
+      // and comparing with the given droppableId
+      for (const status of allPossibleStatuses) {
+        const computedDroppableId = `status-${status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        console.log(`Comparing with: ${status} -> ${computedDroppableId}`);
         
-        // Find the status that matches this droppableId pattern
-        for (const status of possibleStatuses) {
-          const normalizedStatus = status.replace(/\s+/g, '-').toLowerCase();
-          if (normalizedStatus === statusMatch[1]) {
-            return status;
-          }
+        if (computedDroppableId === droppableId) {
+          return status;
         }
       }
     }
     
     // If we can't determine the original status, return the droppableId as is
+    console.log(`Could not find status for droppableId: ${droppableId}`);
     return droppableId;
   };
 
-  // Extract the card ID from draggableId in case it has a prefix
+  // Extract the card ID from draggableId (removing 'card-' prefix and any sanitization)
   const getCardIdFromDraggableId = (draggableId: string): string => {
+    console.log(`Getting cardId from draggableId: ${draggableId}`);
+    
     if (draggableId.startsWith('card-')) {
-      return draggableId.substring(5);
+      const cardIdPart = draggableId.substring(5);
+      
+      // Find the actual card ID that matches this sanitized ID
+      const allCards = [...cards, ...epics];
+      for (const card of allCards) {
+        const sanitizedId = card.id.replace(/[^a-zA-Z0-9-]/g, '');
+        if (sanitizedId === cardIdPart) {
+          console.log(`Found card ${card.id} for draggableId ${draggableId}`);
+          return card.id;
+        }
+      }
     }
+    
+    console.log(`Could not find card for draggableId: ${draggableId}`);
     return draggableId;
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    console.log("Drag end result:", result);
+    
     const { source, destination, draggableId } = result;
     
     // If there's no destination, the card was dropped outside a valid area
     if (!destination) {
+      console.log("No destination found, ignoring drag");
       return;
     }
 
@@ -63,6 +85,8 @@ export function useCardDragDrop({
     const sourceStatus = getStatusFromDroppableId(source.droppableId);
     const destinationStatus = getStatusFromDroppableId(destination.droppableId);
     const cardId = getCardIdFromDraggableId(draggableId);
+    
+    console.log(`Moving card ${cardId} from ${sourceStatus} to ${destinationStatus}`);
 
     // Check if this card is part of a multi-selection
     const isMultiCardMove = selectedCards.includes(cardId) && selectedCards.length > 1;
@@ -95,12 +119,17 @@ export function useCardDragDrop({
     destinationIndex: number, 
     cardId: string
   ) => {
+    console.log(`Reordering in same column ${columnId} from index ${sourceIndex} to ${destinationIndex}`);
+    
     const columnCards = [...cards, ...epics]
       .filter(card => card.status === columnId)
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     
     const draggedCard = columnCards.find(card => card.id === cardId);
-    if (!draggedCard) return;
+    if (!draggedCard) {
+      console.error(`Card ${cardId} not found in column ${columnId}`);
+      return;
+    }
     
     const newColumnCards = [...columnCards];
     newColumnCards.splice(sourceIndex, 1);
@@ -135,10 +164,15 @@ export function useCardDragDrop({
     destinationStatus: string,
     destinationIndex: number
   ) => {
+    console.log(`Moving card ${cardId} from ${sourceStatus} to ${destinationStatus} at index ${destinationIndex}`);
+    
     const allCards = [...cards, ...epics];
     const movedCard = allCards.find(card => card.id === cardId);
     
-    if (!movedCard) return;
+    if (!movedCard) {
+      console.error(`Card ${cardId} not found`);
+      return;
+    }
     
     const destinationCards = allCards
       .filter(card => card.status === destinationStatus)
@@ -188,10 +222,15 @@ export function useCardDragDrop({
     destinationStatus: string, 
     destinationStartIndex: number
   ) => {
+    console.log(`Moving ${selectedCards.length} selected cards from ${sourceStatus} to ${destinationStatus}`);
+    
     try {
       const selectedCardObjects = [...cards, ...epics].filter(card => selectedCards.includes(card.id));
       
-      if (selectedCardObjects.length === 0) return;
+      if (selectedCardObjects.length === 0) {
+        console.error("No selected cards found");
+        return;
+      }
       
       // Get all cards in the destination column that are not selected
       const destinationCards = [...cards, ...epics]

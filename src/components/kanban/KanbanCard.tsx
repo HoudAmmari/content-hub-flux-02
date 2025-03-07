@@ -109,8 +109,10 @@ export function KanbanCard({
     }
   };
   
-  // Generate a stable draggable ID
-  const draggableId = `card-${card.id}`;
+  // Generate a stable draggable ID that's safe
+  const draggableId = `card-${card.id.replace(/[^a-zA-Z0-9-]/g, '')}`;
+  
+  console.log(`Rendering card: ${card.title}, id: ${card.id}, draggableId: ${draggableId}`);
   
   return (
     <>
