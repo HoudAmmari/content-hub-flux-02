@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,7 +87,6 @@ export function ProjectContentPanel({
   };
 
   const getContentTypeIcon = (content: Content) => {
-    // Inferir o tipo pelo conteúdo
     const hasVideo = content.description?.toLowerCase().includes('vídeo') || 
                     content.title?.toLowerCase().includes('vídeo');
     
@@ -223,7 +221,7 @@ export function ProjectContentPanel({
       {/* Diálogo para edição de conteúdo */}
       {editingContent && (
         <Dialog open={!!editingContent} onOpenChange={(open) => !open && setEditingContent(null)}>
-          <DialogContent className="sm:max-w-[800px]">
+          <DialogContent className="sm:max-w-[700px] lg:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Conteúdo</DialogTitle>
             </DialogHeader>
@@ -231,6 +229,8 @@ export function ProjectContentPanel({
               card={editingContent} 
               onSave={handleSaveContent}
               onCancel={() => setEditingContent(null)}
+              isContextLocked={true}
+              lockedContext={{ project: { id: projectId, title: "", description: "", status: "in_progress", deadline: "", tasks: 0, completedTasks: 0, progress: 0 } }}
             />
           </DialogContent>
         </Dialog>
