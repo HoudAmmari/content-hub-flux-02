@@ -27,7 +27,7 @@ export function KanbanPage() {
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { selectedCards, handleCardSelect, setSelectedCards } = useCardSelection(cards, epics);
+  const { selectedCards, handleCardSelect } = useCardSelection(cards, epics);
 
   useEffect(() => {
     fetchChannels();
@@ -106,7 +106,6 @@ export function KanbanPage() {
   const handleChannelSelect = (channel: Channel) => {
     setSelectedChannelId(channel.id);
     setSelectedChannel(channel);
-    setSelectedCards([]);
   };
 
   return (
@@ -145,7 +144,6 @@ export function KanbanPage() {
                 onCardsUpdate={fetchContents}
                 selectedCards={selectedCards}
                 onCardSelect={handleCardSelect}
-                setSelectedCards={setSelectedCards}
               />
             )}
           </TabsContent>

@@ -1,21 +1,19 @@
 
-import { useState, useCallback, useRef } from "react";
+import { useState } from "react";
 import { Content } from "@/models/types";
 
 export function useCardSelection(cards: Content[], epics: Content[]) {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
-  const [isMultiSelecting, setIsMultiSelecting] = useState(false);
-  const multiSelectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const getColumnCardsFromId = useCallback((cardId: string) => {
+  const getColumnCardsFromId = (cardId: string) => {
     const card = [...cards, ...epics].find(c => c.id === cardId);
     if (!card) return [];
     
     return getColumnCards(card.status);
-  }, [cards, epics]);
+  };
 
-  const getColumnCards = useCallback((status: string) => {
+  const getColumnCards = (status: string) => {
     const columnCards = cards
       .filter((card) => card.status === status)
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
@@ -25,27 +23,12 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
     return [...columnCards, ...epicCards];
-  }, [cards, epics]);
+  };
 
-  const startMultiSelectMode = useCallback(() => {
-    setIsMultiSelecting(true);
-    
-    // Clear any existing timeout
-    if (multiSelectTimeoutRef.current) {
-      clearTimeout(multiSelectTimeoutRef.current);
-    }
-    
-    // Set a longer timeout for multi-select mode
-    multiSelectTimeoutRef.current = setTimeout(() => {
-      setIsMultiSelecting(false);
-    }, 1000); // Increased from 500ms to 1000ms for better multi-select experience
-  }, []);
-
-  const handleCardSelect = useCallback((cardId: string, event: React.MouseEvent) => {
+  const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
     // Handle comma-separated list of IDs (from selection box)
     if (cardId.includes(',')) {
       const newSelectedIds = cardId.split(',');
-      startMultiSelectMode();
       
       if (event.ctrlKey || event.metaKey) {
         // Add to existing selection
@@ -65,9 +48,6 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
       
       return;
     }
-    
-    // Start multi-select mode for any selection action to prevent immediate deselection
-    startMultiSelectMode();
     
     // Normal single card selection
     if (event.ctrlKey || event.metaKey) {
@@ -96,26 +76,16 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
         });
       }
     } else {
-      // Regular click - deselect others if not the same card
       setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
       setLastSelectedCard(cardId);
     }
-  }, [selectedCards, lastSelectedCard, getColumnCardsFromId, startMultiSelectMode]);
-
-  const clearSelection = useCallback(() => {
-    if (!isMultiSelecting) {
-      setSelectedCards([]);
-      setLastSelectedCard(null);
-    }
-  }, [isMultiSelecting]);
+  };
 
   return {
     selectedCards,
     lastSelectedCard,
     handleCardSelect,
     setSelectedCards,
-    setLastSelectedCard,
-    clearSelection,
-    isMultiSelecting
+    setLastSelectedCard
   };
 }

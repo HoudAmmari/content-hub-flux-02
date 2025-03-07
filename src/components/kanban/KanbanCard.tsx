@@ -1,17 +1,18 @@
-
-import { useRef, useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Clock, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ContentEditor } from "@/components/content/ContentEditor";
 import { cn } from "@/lib/utils";
 import { Draggable } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { Content } from "@/models/types";
 import { contentService } from "@/services/contentService";
-import { ContentEditor } from "@/components/content/ContentEditor";
+import { CardBadges } from "./CardBadges";
+import { CardMenu } from "./CardMenu";
 import { CardDetailView } from "./CardDetailView";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
-import { CardContentArea } from "./CardContent";
-import { useTranslation } from "react-i18next";
 
 interface KanbanCardProps {
   card: Content;
@@ -20,8 +21,6 @@ interface KanbanCardProps {
   isSelected?: boolean;
   onSelect?: (e: React.MouseEvent) => void;
   registerCardPosition?: (cardId: string, element: HTMLElement) => void;
-  selectedCardsCount?: number;
-  isDraggingSelected?: boolean;
 }
 
 export function KanbanCard({ 
@@ -30,9 +29,7 @@ export function KanbanCard({
   onUpdate, 
   isSelected = false, 
   onSelect,
-  registerCardPosition,
-  selectedCardsCount = 0,
-  isDraggingSelected = false
+  registerCardPosition
 }: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -47,6 +44,14 @@ export function KanbanCard({
       registerCardPosition(card.id, cardRef.current);
     }
   }, [card.id, registerCardPosition]);
+  
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { 
+      day: '2-digit', 
+      month: '2-digit'
+    });
+  };
 
   const handleSaveContent = async (content: Partial<Content>) => {
     try {
@@ -114,22 +119,41 @@ export function KanbanCard({
             className={cn(
               "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
               snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
+              snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
-              isSelected && "ring-2 ring-primary ring-offset-2"
+              isSelected && "ring-2 ring-primary ring-offset-2",
+              snapshot.isDragging && isSelected && "invisible"
             )}
             onClick={handleCardClick}
           >
-            <CardContentArea 
-              card={card}
-              onEditClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-              onDeleteClick={(e) => {
-                e.stopPropagation();
-                setDeleteDialogOpen(true);
-              }}
-            />
+            <CardContent className="p-3 space-y-2">
+              <div className="flex justify-between items-start">
+                <h3 className={cn(
+                  "font-medium text-sm line-clamp-2",
+                  card.isEpic && "flex items-center gap-1"
+                )}>
+                  {card.isEpic && <Layers className="h-3.5 w-3.5 text-purple-500" />}
+                  {card.title}
+                </h3>
+                <CardMenu 
+                  onEdit={() => setIsEditing(true)}
+                  onDelete={() => setDeleteDialogOpen(true)}
+                />
+              </div>
+              
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {card.description.replace(/[#*`\\[\]\-_]/g, '')}
+              </p>
+              
+              <CardBadges tags={card.tags} />
+            </CardContent>
+            
+            <CardFooter className="p-3 pt-0 flex justify-between items-center">
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Clock className="mr-1 h-3 w-3" />
+                {formatDate(card.dueDate)}
+              </div>
+            </CardFooter>
           </Card>
         )}
       </Draggable>
