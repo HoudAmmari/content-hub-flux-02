@@ -76,6 +76,7 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
         });
       }
     } else {
+      // Regular click - deselect others if not the same card
       setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
       setLastSelectedCard(cardId);
     }

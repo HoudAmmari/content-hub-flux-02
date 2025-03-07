@@ -1,6 +1,7 @@
-import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, DropResult, Draggable } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
+import { CardDragPreview } from "@/components/kanban/CardDragPreview";
 import { Content, Channel } from "@/models/types";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
@@ -35,6 +36,7 @@ export function KanbanBoard({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDraggingSelected, setIsDraggingSelected] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
@@ -57,6 +59,14 @@ export function KanbanBoard({
   const isCardSelected = useCallback((cardId: string) => {
     return selectedCards.includes(cardId);
   }, [selectedCards]);
+
+  const shouldRenderCard = useCallback((cardId: string) => {
+    // Don't render selected cards when dragging selected cards
+    if (isDraggingSelected && selectedCards.includes(cardId)) {
+      return false;
+    }
+    return true;
+  }, [isDraggingSelected, selectedCards]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -87,6 +97,7 @@ export function KanbanBoard({
       });
       
       onCardsUpdate();
+      setSelectedCards([]);
     } catch (error) {
       console.error("Erro ao excluir cards:", error);
       toast({
@@ -108,11 +119,12 @@ export function KanbanBoard({
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!(e.target as HTMLElement).closest('.kanban-card')) {
+    // Only deselect if clicking on the board and not on a card or other UI element
+    if (!(e.target as HTMLElement).closest('.kanban-card') && 
+        !(e.target as HTMLElement).closest('.droppable-area') &&
+        !(e.target as HTMLElement).closest('button')) {
       setSelectedCards([]);
-    }
-    
-    if (!(e.target as HTMLElement).closest('.kanban-card')) {
+      
       setIsSelecting(true);
       
       if (boardRef.current) {
@@ -155,7 +167,9 @@ export function KanbanBoard({
         }
       });
       
-      onCardSelect(newSelectedCards.join(','), { ctrlKey: true } as React.MouseEvent);
+      if (newSelectedCards.length > 0) {
+        onCardSelect(newSelectedCards.join(','), { ctrlKey: true } as React.MouseEvent);
+      }
     }
   };
 
@@ -180,14 +194,18 @@ export function KanbanBoard({
     };
   };
 
-  const handleDragStart = () => {
-    if (selectedCards.length > 1) {
+  const handleDragStart = (result: any) => {
+    const { draggableId } = result;
+    setDraggedItem(draggableId);
+    
+    if (selectedCards.includes(draggableId) && selectedCards.length > 1) {
       setIsDraggingSelected(true);
     }
   };
   
   const handleDragEnd = async (result: DropResult) => {
     setIsDraggingSelected(false);
+    setDraggedItem(null);
     
     const { source, destination, draggableId } = result;
     
@@ -200,7 +218,9 @@ export function KanbanBoard({
     if (isMultiCardMove) {
       await moveSelectedCards(source.droppableId, destination.droppableId, destination.index);
     } else {
+      // Single card move
       if (source.droppableId === destination.droppableId) {
+        // Same column reordering
         const columnCards = [...cards, ...epics].filter(
           card => card.status === source.droppableId
         ).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
@@ -235,6 +255,7 @@ export function KanbanBoard({
         }
       } 
       else {
+        // Moving to different column
         const allCards = [...cards, ...epics];
         const movedCard = allCards.find(card => card.id === draggableId);
         
@@ -285,10 +306,12 @@ export function KanbanBoard({
       
       if (selectedCardObjects.length === 0) return;
       
+      // Get current cards in the destination column (excluding selected cards)
       const destinationCards = [...cards, ...epics]
         .filter(card => card.status === destinationStatus && !selectedCards.includes(card.id))
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
+      // Insert selected cards at the destination index
       for (let i = 0; i < selectedCardObjects.length; i++) {
         destinationCards.splice(destinationStartIndex + i, 0, {
           ...selectedCardObjects[i],
@@ -296,17 +319,20 @@ export function KanbanBoard({
         });
       }
       
+      // Create updates with new indices
       const destinationUpdates = destinationCards.map((card, index) => ({
         id: card.id,
         index
       }));
       
+      // Update all selected cards to the new status
       for (const cardId of selectedCards) {
         await contentService.updateContent(cardId, {
           status: destinationStatus
         });
       }
       
+      // Update indices in the destination column
       await contentService.updateContentIndices(destinationUpdates);
       
       toast({
@@ -314,6 +340,8 @@ export function KanbanBoard({
         description: `${selectedCards.length} cards movidos com sucesso.`
       });
       
+      // Clear selection after successful move
+      setSelectedCards([]);
       onCardsUpdate();
     } catch (error) {
       console.error("Erro ao mover múltiplos cards:", error);
@@ -324,6 +352,27 @@ export function KanbanBoard({
       });
       onCardsUpdate();
     }
+  };
+
+  const renderDragPreview = () => {
+    if (isDraggingSelected && draggedItem && selectedCards.includes(draggedItem)) {
+      return (
+        <div className="fixed -left-1000 top-0 pointer-events-none z-50">
+          <Draggable draggableId={draggedItem} index={0} isDragDisabled={true}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+              >
+                <CardDragPreview count={selectedCards.length} />
+              </div>
+            )}
+          </Draggable>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -338,6 +387,8 @@ export function KanbanBoard({
       >
         <div ref={selectionBoxRef} style={getSelectionBoxStyle()} />
         
+        {renderDragPreview()}
+        
         <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
           {selectedChannel?.statuses?.map((status) => (
             <div key={status.name} className="shrink-0 w-64">
@@ -348,17 +399,19 @@ export function KanbanBoard({
                 type="CARD"
               >
                 {getColumnCards(status.name).map((card, index) => (
-                  <KanbanCard
-                    key={card.id}
-                    card={card}
-                    index={index}
-                    onUpdate={onCardsUpdate}
-                    isSelected={isCardSelected(card.id)}
-                    onSelect={(e) => onCardSelect(card.id, e)}
-                    registerCardPosition={registerCardPosition}
-                    selectedCardsCount={selectedCards.includes(card.id) ? selectedCards.length : 0}
-                    isDraggingSelected={isDraggingSelected}
-                  />
+                  shouldRenderCard(card.id) && (
+                    <KanbanCard
+                      key={card.id}
+                      card={card}
+                      index={index}
+                      onUpdate={onCardsUpdate}
+                      isSelected={isCardSelected(card.id)}
+                      onSelect={(e) => onCardSelect(card.id, e)}
+                      registerCardPosition={registerCardPosition}
+                      selectedCardsCount={selectedCards.includes(card.id) ? selectedCards.length : 0}
+                      isDraggingSelected={isDraggingSelected}
+                    />
+                  )
                 ))}
               </KanbanColumn>
             </div>

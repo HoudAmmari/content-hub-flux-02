@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -105,6 +106,7 @@ export function KanbanPage() {
   const handleChannelSelect = (channel: Channel) => {
     setSelectedChannelId(channel.id);
     setSelectedChannel(channel);
+    setSelectedCards([]);
   };
 
   return (
