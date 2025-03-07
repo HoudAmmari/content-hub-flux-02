@@ -71,15 +71,6 @@ export function KanbanBoard({
     };
   }, [selectedCards, setDeleteDialogOpen]);
 
-  // Handle clicking outside of cards to clear selection
-  const handleBoardClick = (e: React.MouseEvent) => {
-    // Only clear selection if clicking directly on the board (not on a card or in selection mode)
-    if (!isSelecting && e.target === boardRef.current || (e.target as HTMLElement).classList.contains('kanban-board-background')) {
-      onCardSelect('', {} as React.MouseEvent);
-    }
-    handleMouseDown(e);
-  };
-
   const handleDeleteConfirm = () => {
     deleteSelectedCards(selectedCards);
   };
@@ -91,12 +82,11 @@ export function KanbanBoard({
     >
       <div 
         ref={boardRef}
-        className="overflow-x-auto max-w-full pb-4 relative kanban-board-background"
-        onMouseDown={handleBoardClick}
+        className="overflow-x-auto max-w-full pb-4 relative"
+        onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ minHeight: '70vh' }}
       >
         <SelectionBox 
           isSelecting={isSelecting}
