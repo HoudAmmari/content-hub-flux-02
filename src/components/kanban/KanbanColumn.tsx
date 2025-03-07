@@ -38,6 +38,11 @@ export function KanbanColumn({
     }
   };
 
+  // Calcula a contagem real dos cards filhos
+  const childCount = Array.isArray(children) 
+    ? children.filter(child => child !== null && child !== undefined).length 
+    : (children ? 1 : 0);
+
   return (
     <div className="flex flex-col h-full min-h-[500px]">
       <Card
@@ -52,7 +57,7 @@ export function KanbanColumn({
               {title}
             </CardTitle>
             <div className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-              {Array.isArray(children) ? children.length : (children ? 1 : 0)}
+              {childCount}
             </div>
           </div>
         </CardHeader>
@@ -68,7 +73,7 @@ export function KanbanColumn({
             >
               {children}
               {provided.placeholder}
-              {Array.isArray(children) && children.length === 0 && (
+              {childCount === 0 && (
                 <div className="text-xs text-center py-4 text-muted-foreground">
                   <p>{t("kanban.dragToMove")}</p>
                 </div>
