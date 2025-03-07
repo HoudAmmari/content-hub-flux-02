@@ -203,5 +203,6 @@ export function ProjectInfoPanel({ project, onProjectUpdated }: ProjectInfoPanel
           </div>
         </div>
       </CardContent>
+    </Card>
   );
 }
