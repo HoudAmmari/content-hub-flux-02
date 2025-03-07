@@ -15,7 +15,9 @@ export function DragPreviewWrapper({
   onDragEnd 
 }: DragPreviewWrapperProps) {
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
+    <DragDropContext 
+      onDragEnd={onDragEnd}
+    >
       {children}
     </DragDropContext>
   );

@@ -54,6 +54,7 @@ export function useCardDragDrop({
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
+    // If there's no destination, the card was dropped outside a valid area
     if (!destination) {
       return;
     }
@@ -92,13 +93,13 @@ export function useCardDragDrop({
     columnId: string, 
     sourceIndex: number, 
     destinationIndex: number, 
-    draggableId: string
+    cardId: string
   ) => {
-    const columnCards = [...cards, ...epics].filter(
-      card => card.status === columnId
-    ).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    const columnCards = [...cards, ...epics]
+      .filter(card => card.status === columnId)
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     
-    const draggedCard = columnCards.find(card => card.id === draggableId);
+    const draggedCard = columnCards.find(card => card.id === cardId);
     if (!draggedCard) return;
     
     const newColumnCards = [...columnCards];
@@ -143,10 +144,14 @@ export function useCardDragDrop({
       .filter(card => card.status === destinationStatus)
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     
-    destinationCards.splice(destinationIndex, 0, {
+    // Create a copy with the new status
+    const updatedCard = {
       ...movedCard,
       status: destinationStatus
-    });
+    };
+    
+    // Insert the card at the new position
+    destinationCards.splice(destinationIndex, 0, updatedCard);
     
     const destinationUpdates = destinationCards.map((card, index) => ({
       id: card.id,
@@ -154,10 +159,12 @@ export function useCardDragDrop({
     }));
     
     try {
+      // First update the card's status
       await contentService.updateContent(cardId, {
         status: destinationStatus
       });
       
+      // Then update all indices
       await contentService.updateContentIndices(destinationUpdates);
       
       toast({
@@ -186,6 +193,7 @@ export function useCardDragDrop({
       
       if (selectedCardObjects.length === 0) return;
       
+      // Get all cards in the destination column that are not selected
       const destinationCards = [...cards, ...epics]
         .filter(card => card.status === destinationStatus && !selectedCards.includes(card.id))
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
@@ -198,6 +206,7 @@ export function useCardDragDrop({
         });
       }
       
+      // Prepare index updates for all cards in the destination column
       const destinationUpdates = destinationCards.map((card, index) => ({
         id: card.id,
         index

@@ -43,7 +43,7 @@ export function KanbanColumns({
     return selectedCards.includes(cardId);
   };
 
-  // Create a safe droppable ID from the status name
+  // Create a consistent droppable ID from the status name
   const createDroppableId = (statusName: string) => {
     return `status-${statusName.replace(/\s+/g, '-').toLowerCase()}`;
   };

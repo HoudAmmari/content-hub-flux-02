@@ -109,7 +109,7 @@ export function KanbanCard({
     }
   };
   
-  // Ensure each draggable has a valid ID by using a deterministic approach
+  // Generate a stable draggable ID
   const draggableId = `card-${card.id}`;
   
   return (
