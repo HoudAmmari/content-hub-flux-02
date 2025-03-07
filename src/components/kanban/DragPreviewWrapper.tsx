@@ -16,25 +16,25 @@ export function DragPreviewWrapper({
 }: DragPreviewWrapperProps) {
   const [isDragging, setIsDragging] = useState(false);
   
-  console.log("DragPreviewWrapper rendering with selectedCards:", selectedCards);
-  
   const handleDragStart = () => {
     setIsDragging(true);
+    
+    // Add a class to the body to prevent text selection while dragging
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('dragging');
+    }
   };
   
   const handleDragEnd = (result: DropResult, provided: ResponderProvided) => {
     setIsDragging(false);
-    onDragEnd(result, provided);
-  };
-
-  // Add a class to the body when dragging to prevent unwanted text selection
-  if (typeof document !== 'undefined') {
-    if (isDragging) {
-      document.body.classList.add('dragging');
-    } else {
+    
+    // Remove the class when drag ends
+    if (typeof document !== 'undefined') {
       document.body.classList.remove('dragging');
     }
-  }
+    
+    onDragEnd(result, provided);
+  };
   
   return (
     <DragDropContext 

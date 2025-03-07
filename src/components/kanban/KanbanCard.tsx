@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -109,10 +108,8 @@ export function KanbanCard({
     }
   };
   
-  // Generate a stable draggable ID that's safe
-  const draggableId = `card-${card.id.replace(/[^a-zA-Z0-9-]/g, '')}`;
-  
-  console.log(`Rendering card: ${card.title}, id: ${card.id}, draggableId: ${draggableId}`);
+  // Generate a safe draggableId
+  const draggableId = `card-${card.id}`;
   
   return (
     <>
