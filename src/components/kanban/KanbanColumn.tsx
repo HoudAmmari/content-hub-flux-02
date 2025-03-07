@@ -12,6 +12,7 @@ interface KanbanColumnProps {
   children: ReactNode;
   droppableId: string;
   type?: string;
+  totalCount?: number;
 }
 
 export function KanbanColumn({ 
@@ -19,7 +20,8 @@ export function KanbanColumn({
   title, 
   children, 
   droppableId, 
-  type = "DEFAULT" 
+  type = "DEFAULT",
+  totalCount
 }: KanbanColumnProps) {
   const { t } = useTranslation();
 
@@ -43,6 +45,9 @@ export function KanbanColumn({
     ? children.filter(child => child !== null && child !== undefined).length 
     : (children ? 1 : 0);
 
+  // Usa o totalCount se fornecido, senão usa a contagem local
+  const displayCount = totalCount !== undefined ? totalCount : childCount;
+
   return (
     <div className="flex flex-col h-full min-h-[500px]">
       <Card
@@ -57,7 +62,7 @@ export function KanbanColumn({
               {title}
             </CardTitle>
             <div className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-              {childCount}
+              {displayCount}
             </div>
           </div>
         </CardHeader>

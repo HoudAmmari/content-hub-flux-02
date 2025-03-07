@@ -34,12 +34,6 @@ export function KanbanPage() {
     fetchChannels();
   }, []);
 
-  useEffect(() => {
-    if (selectedChannelId) {
-      fetchContents();
-    }
-  }, [selectedChannelId, showEpics]);
-
   // Add effect to clear selection when clicking outside the board
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
@@ -56,13 +50,25 @@ export function KanbanPage() {
     };
   }, [clearSelectionOnOutsideClick]);
 
-  // Salvar o tamanho da página no localStorage
+  // Carregar tamanho da página do localStorage
   useEffect(() => {
     const savedPageSize = localStorage.getItem('kanbanPageSize');
     if (savedPageSize) {
       setPageSize(parseInt(savedPageSize, 10));
     }
   }, []);
+
+  // Atualizar o estado de loading quando o canal muda
+  useEffect(() => {
+    if (selectedChannelId) {
+      setIsLoading(true);
+      // Definir um timeout curto para simular o carregamento inicial
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChannelId, showEpics]);
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
@@ -80,56 +86,6 @@ export function KanbanPage() {
         description: "Não foi possível carregar os canais.",
         variant: "destructive",
       });
-    }
-  };
-
-  const fetchContents = async () => {
-    setIsLoading(true);
-    try {
-      if (!selectedChannel) return;
-
-      // Buscar conteúdos com a primeira página
-      const { contents: contentsData } = await contentService.getContentsByChannel(
-        selectedChannel.id,
-        false,
-        { page: 0, pageSize }
-      );
-      
-      const sortedContents = contentsData.sort((a, b) => {
-        if (a.status === b.status) {
-          return (a.index ?? 0) - (b.index ?? 0);
-        }
-        return 0;
-      });
-      
-      setCards(sortedContents);
-
-      if (showEpics) {
-        const { epics: epicsData } = await contentService.getEpicsByChannel(
-          selectedChannel.id,
-          { page: 0, pageSize }
-        );
-        
-        const sortedEpics = epicsData.sort((a, b) => {
-          if (a.status === b.status) {
-            return (a.index ?? 0) - (b.index ?? 0);
-          }
-          return 0;
-        });
-        
-        setEpics(sortedEpics);
-      } else {
-        setEpics([]);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar conteúdos:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os conteúdos.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -157,6 +113,7 @@ export function KanbanPage() {
         onNewContent={() => setOpenNewContent(true)}
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
+        isLoading={isLoading}
       />
 
       <div className="mt-6">
@@ -174,10 +131,10 @@ export function KanbanPage() {
             ) : (
               <KanbanBoard
                 selectedChannel={selectedChannel}
-                cards={cards}
-                epics={epics}
+                cards={[]} // Agora os cards são buscados diretamente no KanbanColumns
+                epics={[]} // Agora os epics são buscados diretamente no KanbanColumns
                 showEpics={showEpics}
-                onCardsUpdate={fetchContents}
+                onCardsUpdate={() => setIsLoading(true)} // Apenas aciona o estado de loading
                 selectedCards={selectedCards}
                 onCardSelect={handleCardSelect}
                 pageSize={pageSize}
@@ -199,7 +156,7 @@ export function KanbanPage() {
         open={openNewContent}
         onOpenChange={setOpenNewContent}
         channel={selectedChannel}
-        onSuccess={fetchContents}
+        onSuccess={() => setIsLoading(true)}
       />
     </div>
   );

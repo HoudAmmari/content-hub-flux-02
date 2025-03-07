@@ -26,6 +26,7 @@ interface ColumnState {
   page: number;
   hasMore: boolean;
   loading: boolean;
+  totalCount: number;
 }
 
 export function KanbanColumns({
@@ -45,27 +46,68 @@ export function KanbanColumns({
   // Estado para controlar paginação por coluna
   const [columnStates, setColumnStates] = useState<Record<string, ColumnState>>({});
 
-  // Inicializar estados da coluna quando o canal ou pageSize muda
+  // Inicializar colunas quando o canal é selecionado ou quando muda o pageSize
   useEffect(() => {
-    if (selectedChannel && selectedChannel.statuses) {
-      const initialStates: Record<string, ColumnState> = {};
+    if (!selectedChannel) return;
+    
+    const loadInitialData = async () => {
+      const newColumnStates: Record<string, ColumnState> = {};
       
-      selectedChannel.statuses.forEach(status => {
-        const statusCards = cards.filter(card => card.status === status.name);
-        const statusEpics = showEpics ? epics.filter(epic => epic.status === status.name) : [];
-        const allCards = [...statusCards, ...statusEpics];
-        
-        initialStates[status.name] = {
-          cards: allCards.slice(0, pageSize),
-          page: 0,
-          hasMore: allCards.length > pageSize,
-          loading: false
-        };
-      });
+      // Buscar dados para cada status separadamente
+      for (const status of selectedChannel.statuses) {
+        try {
+          // Buscar conteúdos regulares
+          const { contents, total } = await contentService.getContentsByChannel(
+            selectedChannel.id,
+            false,
+            {
+              status: status.name,
+              page: 0,
+              pageSize
+            }
+          );
+          
+          // Buscar épicos se necessário
+          let epicResults = { epics: [] as Content[], total: 0 };
+          if (showEpics) {
+            epicResults = await contentService.getEpicsByChannel(
+              selectedChannel.id,
+              {
+                status: status.name,
+                page: 0,
+                pageSize
+              }
+            );
+          }
+          
+          // Combinar resultados
+          const allCards = [...contents, ...epicResults.epics];
+          const totalItems = total + epicResults.total;
+          
+          newColumnStates[status.name] = {
+            cards: allCards,
+            page: 0,
+            hasMore: totalItems > allCards.length,
+            loading: false,
+            totalCount: totalItems
+          };
+        } catch (error) {
+          console.error(`Erro ao carregar dados para o status ${status.name}:`, error);
+          newColumnStates[status.name] = {
+            cards: [],
+            page: 0,
+            hasMore: false,
+            loading: false,
+            totalCount: 0
+          };
+        }
+      }
       
-      setColumnStates(initialStates);
-    }
-  }, [selectedChannel, cards, epics, showEpics, pageSize]);
+      setColumnStates(newColumnStates);
+    };
+    
+    loadInitialData();
+  }, [selectedChannel, showEpics, pageSize]);
 
   const handleLoadMore = async (status: string) => {
     if (!selectedChannel || !columnStates[status]) return;
@@ -86,7 +128,7 @@ export function KanbanColumns({
       const nextPage = currentState.page + 1;
       
       // Buscar conteúdos regulares
-      const { contents, total } = await contentService.getContentsByChannel(
+      const { contents } = await contentService.getContentsByChannel(
         selectedChannel.id,
         false,
         {
@@ -97,7 +139,7 @@ export function KanbanColumns({
       );
       
       // Buscar épicos se necessário
-      let epicResults = { epics: [] as Content[], total: 0 };
+      let epicResults = { epics: [] as Content[] };
       if (showEpics) {
         epicResults = await contentService.getEpicsByChannel(
           selectedChannel.id,
@@ -111,13 +153,15 @@ export function KanbanColumns({
       
       // Combinar os resultados
       const newCards = [...contents, ...epicResults.epics];
-      const totalItems = total + epicResults.total;
-      const hasMore = (nextPage + 1) * pageSize < totalItems;
+      
+      // Verificar se há mais itens para carregar
+      const hasMore = newCards.length === pageSize;
       
       // Atualizar o estado com os novos cards
       setColumnStates(prev => ({
         ...prev,
         [status]: {
+          ...prev[status],
           cards: [...prev[status].cards, ...newCards],
           page: nextPage,
           hasMore,
@@ -157,7 +201,7 @@ export function KanbanColumns({
           return null;
         }
         
-        const { cards: visibleCards, hasMore, loading } = columnState;
+        const { cards: visibleCards, hasMore, loading, totalCount } = columnState;
         
         return (
           <div key={status.name} className="shrink-0 w-64">
@@ -166,6 +210,7 @@ export function KanbanColumns({
               title={status.name}
               droppableId={droppableId}
               type="CARD"
+              totalCount={totalCount}
             >
               {visibleCards.map((card, index) => (
                 <KanbanCard
