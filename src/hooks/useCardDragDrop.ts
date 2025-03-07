@@ -89,26 +89,51 @@ export function useCardDragDrop({
   ) => {
     console.log(`Reordering in same column ${columnId} from index ${sourceIndex} to ${destinationIndex}`);
     
-    const columnCards = [...cards, ...epics]
-      .filter(card => card.status === columnId)
-      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    
-    const draggedCard = columnCards.find(card => card.id === cardId);
-    if (!draggedCard) {
-      console.error(`Card ${cardId} not found in column ${columnId}`);
-      return;
-    }
-    
-    const newColumnCards = [...columnCards];
-    newColumnCards.splice(sourceIndex, 1);
-    newColumnCards.splice(destinationIndex, 0, draggedCard);
-    
-    const updates = newColumnCards.map((card, index) => ({
-      id: card.id,
-      index
-    }));
-    
+    // Instead of relying on the current cards array which might be outdated,
+    // fetch the card directly from the service
     try {
+      const draggedCard = await contentService.getContentById(cardId);
+      
+      if (!draggedCard) {
+        console.error(`Card ${cardId} not found`);
+        toast({
+          title: "Erro",
+          description: "Não foi possível encontrar o card para reordenar.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Get all cards in the column to update their indices
+      const { contents: columnCards } = await contentService.getContentsByChannel(
+        draggedCard.channelId,
+        false,
+        { status: columnId }
+      );
+      
+      // Add epics if they exist in this column
+      if (draggedCard.isEpic) {
+        const { epics: columnEpics } = await contentService.getEpicsByChannel(
+          draggedCard.channelId,
+          { status: columnId }
+        );
+        columnCards.push(...columnEpics);
+      }
+      
+      // Sort by current index
+      columnCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      // Remove the dragged card from the array (it might be at a different position)
+      const filteredCards = columnCards.filter(card => card.id !== cardId);
+      
+      // Insert the dragged card at the new position
+      filteredCards.splice(destinationIndex, 0, draggedCard);
+      
+      const updates = filteredCards.map((card, index) => ({
+        id: card.id,
+        index
+      }));
+      
       await contentService.updateContentIndices(updates);
       toast({
         title: "Sucesso",
@@ -132,39 +157,62 @@ export function useCardDragDrop({
   ) => {
     console.log(`Moving card ${cardId} from ${sourceStatus} to ${destinationStatus} at index ${destinationIndex}`);
     
-    const allCards = [...cards, ...epics];
-    const movedCard = allCards.find(card => card.id === cardId);
-    
-    if (!movedCard) {
-      console.error(`Card ${cardId} not found`);
-      return;
-    }
-    
-    const destinationCards = allCards
-      .filter(card => card.status === destinationStatus)
-      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    
-    // Create a copy with the new status
-    const updatedCard = {
-      ...movedCard,
-      status: destinationStatus
-    };
-    
-    // Insert the card at the new position
-    destinationCards.splice(destinationIndex, 0, updatedCard);
-    
-    const destinationUpdates = destinationCards.map((card, index) => ({
-      id: card.id,
-      index
-    }));
-    
     try {
+      // Get the card directly from the service to ensure we have the latest data
+      const movedCard = await contentService.getContentById(cardId);
+      
+      if (!movedCard) {
+        console.error(`Card ${cardId} not found`);
+        toast({
+          title: "Erro",
+          description: "Não foi possível encontrar o card para mover.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // First update the card's status
       await contentService.updateContent(cardId, {
         status: destinationStatus
       });
       
-      // Then update all indices
+      // Get all cards in the destination column
+      const { contents: destinationCards } = await contentService.getContentsByChannel(
+        movedCard.channelId,
+        false,
+        { status: destinationStatus }
+      );
+      
+      // Add epics if needed
+      if (movedCard.isEpic) {
+        const { epics: destinationEpics } = await contentService.getEpicsByChannel(
+          movedCard.channelId,
+          { status: destinationStatus }
+        );
+        destinationCards.push(...destinationEpics);
+      }
+      
+      // Sort by current index
+      destinationCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      // Remove the moved card if it's already in the destination array (unlikely but possible)
+      const filteredDestinationCards = destinationCards.filter(card => card.id !== cardId);
+      
+      // Create a copy with the new status
+      const updatedCard = {
+        ...movedCard,
+        status: destinationStatus
+      };
+      
+      // Insert the card at the new position
+      filteredDestinationCards.splice(destinationIndex, 0, updatedCard);
+      
+      const destinationUpdates = filteredDestinationCards.map((card, index) => ({
+        id: card.id,
+        index
+      }));
+      
+      // Update all indices
       await contentService.updateContentIndices(destinationUpdates);
       
       toast({
@@ -189,7 +237,17 @@ export function useCardDragDrop({
     console.log(`Moving ${selectedCards.length} selected cards from ${sourceStatus} to ${destinationStatus}`);
     
     try {
-      const selectedCardObjects = [...cards, ...epics].filter(card => selectedCards.includes(card.id));
+      // We'll fetch each card directly from the service to ensure we have the latest data
+      const selectedCardObjects = [];
+      let channelId = "";
+      
+      for (const cardId of selectedCards) {
+        const card = await contentService.getContentById(cardId);
+        if (card) {
+          selectedCardObjects.push(card);
+          if (!channelId) channelId = card.channelId;
+        }
+      }
       
       if (selectedCardObjects.length === 0) {
         console.error("No selected cards found");
@@ -197,8 +255,19 @@ export function useCardDragDrop({
       }
       
       // Get all cards in the destination column that are not selected
-      const destinationCards = [...cards, ...epics]
-        .filter(card => card.status === destinationStatus && !selectedCards.includes(card.id))
+      const { contents: regularCards } = await contentService.getContentsByChannel(
+        channelId,
+        false,
+        { status: destinationStatus }
+      );
+      
+      const { epics: epicCards } = await contentService.getEpicsByChannel(
+        channelId,
+        { status: destinationStatus }
+      );
+      
+      const destinationCards = [...regularCards, ...epicCards]
+        .filter(card => !selectedCards.includes(card.id))
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
       // Insert all selected cards at the destination index
