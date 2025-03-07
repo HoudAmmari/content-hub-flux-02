@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -303,13 +304,13 @@ export function ContentEditor({
       {renderModeSelector()}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(mode === "channel" || (isContextLocked && lockedContext?.channel)) && (
+        {(mode === "channel" || (isContextLocked && !!lockedContext?.channel)) && (
           <div>
             <Label htmlFor="channel">Canal</Label>
             <Select 
               value={channelId} 
               onValueChange={setChannelId}
-              disabled={isContextLocked && lockedContext?.channel}
+              disabled={isContextLocked && !!lockedContext?.channel}
             >
               <SelectTrigger id="channel" className="mt-1">
                 <SelectValue placeholder="Selecione um canal" />
@@ -331,13 +332,13 @@ export function ContentEditor({
           </div>
         )}
 
-        {(mode === "project" || (isContextLocked && lockedContext?.project)) && (
+        {(mode === "project" || (isContextLocked && !!lockedContext?.project)) && (
           <div>
             <Label htmlFor="project">Projeto</Label>
             <Select 
               value={projectId} 
               onValueChange={setProjectId}
-              disabled={isContextLocked && lockedContext?.project}
+              disabled={isContextLocked && !!lockedContext?.project}
             >
               <SelectTrigger id="project" className="mt-1">
                 <SelectValue placeholder="Selecione um projeto" />
