@@ -3,8 +3,22 @@ import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Droppable } from "react-beautiful-dnd";
+import { Droppable, DroppableProps } from "react-beautiful-dnd";
 import { ChannelStatus } from "@/models/types";
+
+// Custom wrapper to handle defaultProps deprecation warning
+function CustomDroppable({ 
+  droppableId, 
+  type = "DEFAULT", 
+  children, 
+  ...rest 
+}: DroppableProps) {
+  return (
+    <Droppable droppableId={droppableId} type={type} {...rest}>
+      {children}
+    </Droppable>
+  );
+}
 
 interface KanbanColumnProps {
   status: ChannelStatus;
@@ -14,7 +28,13 @@ interface KanbanColumnProps {
   type?: string;
 }
 
-export function KanbanColumn({ status, title, children, droppableId, type = "DEFAULT" }: KanbanColumnProps) {
+export function KanbanColumn({ 
+  status, 
+  title, 
+  children, 
+  droppableId, 
+  type = "DEFAULT" 
+}: KanbanColumnProps) {
   const { t } = useTranslation();
 
   const getColumnColor = (id: string) => {
@@ -50,7 +70,7 @@ export function KanbanColumn({ status, title, children, droppableId, type = "DEF
             </div>
           </div>
         </CardHeader>
-        <Droppable droppableId={droppableId} type={type}>
+        <CustomDroppable droppableId={droppableId} type={type}>
           {(provided, snapshot) => (
             <CardContent
               className={cn(
@@ -69,7 +89,7 @@ export function KanbanColumn({ status, title, children, droppableId, type = "DEF
               )}
             </CardContent>
           )}
-        </Droppable>
+        </CustomDroppable>
       </Card>
     </div>
   );

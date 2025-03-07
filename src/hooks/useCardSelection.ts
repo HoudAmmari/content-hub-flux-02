@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Content } from "@/models/types";
 
 export function useCardSelection(cards: Content[], epics: Content[]) {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
+  const [lastSelectionTime, setLastSelectionTime] = useState<number>(0);
 
   const getColumnCardsFromId = (cardId: string) => {
     const card = [...cards, ...epics].find(c => c.id === cardId);
@@ -26,6 +27,11 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
   };
 
   const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
+    const now = Date.now();
+    const multiSelectThreshold = 1000; // Increase timeout for multiselection to 1 second
+    const isMultiselect = now - lastSelectionTime < multiSelectThreshold;
+    setLastSelectionTime(now);
+    
     // Handle comma-separated list of IDs (from selection box)
     if (cardId.includes(',')) {
       const newSelectedIds = cardId.split(',');
@@ -76,10 +82,21 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
         });
       }
     } else {
+      // If it's a rapid click on the same card, don't deselect
+      if (isMultiselect && cardId === lastSelectedCard && selectedCards.length === 1) {
+        return;
+      }
+      
       setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
       setLastSelectedCard(cardId);
     }
   };
+
+  // Clear selection when cards change
+  useEffect(() => {
+    setSelectedCards([]);
+    setLastSelectedCard(null);
+  }, [cards, epics]);
 
   return {
     selectedCards,
