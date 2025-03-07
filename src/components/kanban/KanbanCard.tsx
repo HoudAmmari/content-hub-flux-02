@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -21,6 +22,7 @@ interface KanbanCardProps {
   isSelected?: boolean;
   onSelect?: (e: React.MouseEvent) => void;
   registerCardPosition?: (cardId: string, element: HTMLElement) => void;
+  selectedCardsCount?: number;
 }
 
 export function KanbanCard({ 
@@ -29,7 +31,8 @@ export function KanbanCard({
   onUpdate, 
   isSelected = false, 
   onSelect,
-  registerCardPosition
+  registerCardPosition,
+  selectedCardsCount = 0
 }: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -104,6 +107,26 @@ export function KanbanCard({
     }
   };
   
+  const renderMultipleCardsDragPreview = () => {
+    return (
+      <Card className="cursor-pointer shadow-md select-none kanban-card">
+        <CardContent className="p-3 space-y-2">
+          <div className="flex justify-between items-center">
+            <h3 className="font-medium text-sm">
+              {selectedCardsCount} cards selecionados
+            </h3>
+          </div>
+        </CardContent>
+        <CardFooter className="p-3 pt-0 flex justify-between items-center">
+          <div className="relative w-full h-4">
+            <div className="absolute top-1 left-1 right-1 bg-muted rounded h-3 transform -rotate-1"></div>
+            <div className="absolute top-2 left-2 right-2 bg-muted/80 rounded h-3 transform rotate-1"></div>
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  };
+  
   return (
     <>
       <Draggable draggableId={card.id} index={index}>
@@ -119,41 +142,47 @@ export function KanbanCard({
             className={cn(
               "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
               snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
-              snapshot.isDragging && isSelected && "opacity-50",
+              snapshot.isDragging && isSelected && "opacity-0",
               card.isEpic && "border-l-4 border-l-purple-400",
               isSelected && "ring-2 ring-primary ring-offset-2",
-              snapshot.isDragging && isSelected && "invisible"
+              (snapshot.isDragging && selectedCardsCount > 1) && "invisible"
             )}
             onClick={handleCardClick}
           >
-            <CardContent className="p-3 space-y-2">
-              <div className="flex justify-between items-start">
-                <h3 className={cn(
-                  "font-medium text-sm line-clamp-2",
-                  card.isEpic && "flex items-center gap-1"
-                )}>
-                  {card.isEpic && <Layers className="h-3.5 w-3.5 text-purple-500" />}
-                  {card.title}
-                </h3>
-                <CardMenu 
-                  onEdit={() => setIsEditing(true)}
-                  onDelete={() => setDeleteDialogOpen(true)}
-                />
-              </div>
-              
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {card.description.replace(/[#*`\\[\]\-_]/g, '')}
-              </p>
-              
-              <CardBadges tags={card.tags} />
-            </CardContent>
-            
-            <CardFooter className="p-3 pt-0 flex justify-between items-center">
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Clock className="mr-1 h-3 w-3" />
-                {formatDate(card.dueDate)}
-              </div>
-            </CardFooter>
+            {(snapshot.isDragging && selectedCardsCount > 1) ? (
+              renderMultipleCardsDragPreview()
+            ) : (
+              <>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <h3 className={cn(
+                      "font-medium text-sm line-clamp-2",
+                      card.isEpic && "flex items-center gap-1"
+                    )}>
+                      {card.isEpic && <Layers className="h-3.5 w-3.5 text-purple-500" />}
+                      {card.title}
+                    </h3>
+                    <CardMenu 
+                      onEdit={() => setIsEditing(true)}
+                      onDelete={() => setDeleteDialogOpen(true)}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {card.description.replace(/[#*`\\[\]\-_]/g, '')}
+                  </p>
+                  
+                  <CardBadges tags={card.tags} />
+                </CardContent>
+                
+                <CardFooter className="p-3 pt-0 flex justify-between items-center">
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Clock className="mr-1 h-3 w-3" />
+                    {formatDate(card.dueDate)}
+                  </div>
+                </CardFooter>
+              </>
+            )}
           </Card>
         )}
       </Draggable>

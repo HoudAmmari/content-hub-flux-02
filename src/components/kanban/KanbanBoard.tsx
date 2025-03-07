@@ -1,12 +1,12 @@
+
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
 import { Content, Channel } from "@/models/types";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
-import { Layers } from "lucide-react";
 
 interface KanbanBoardProps {
   selectedChannel: Channel | null;
@@ -37,7 +37,7 @@ export function KanbanBoard({
   const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
 
-  const getColumnCards = (status: string) => {
+  const getColumnCards = useCallback((status: string) => {
     const columnCards = cards
       .filter((card) => card.status === status)
       .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
@@ -50,11 +50,11 @@ export function KanbanBoard({
       return [...columnCards, ...epicCards];
     }
     return columnCards;
-  };
+  }, [cards, epics, showEpics]);
 
-  const isCardSelected = (cardId: string) => {
+  const isCardSelected = useCallback((cardId: string) => {
     return selectedCards.includes(cardId);
-  };
+  }, [selectedCards]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -98,12 +98,12 @@ export function KanbanBoard({
     }
   };
 
-  const registerCardPosition = (cardId: string, element: HTMLElement) => {
+  const registerCardPosition = useCallback((cardId: string, element: HTMLElement) => {
     if (element) {
       const rect = element.getBoundingClientRect();
       cardPositionsRef.current.set(cardId, rect);
     }
-  };
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.kanban-card')) {
@@ -344,6 +344,7 @@ export function KanbanBoard({
                     isSelected={isCardSelected(card.id)}
                     onSelect={(e) => onCardSelect(card.id, e)}
                     registerCardPosition={registerCardPosition}
+                    selectedCardsCount={selectedCards.includes(card.id) ? selectedCards.length : 0}
                   />
                 ))}
               </KanbanColumn>
@@ -353,9 +354,8 @@ export function KanbanBoard({
 
         {selectedCards.length > 0 && (
           <div 
-            className="fixed bottom-4 right-4 bg-background border rounded-lg p-3 shadow-lg flex items-center gap-2"
+            className="fixed bottom-4 right-4 bg-background border rounded-lg p-3 shadow-lg flex items-center gap-2 animate-fade-in"
           >
-            <Layers className="h-4 w-4 text-muted-foreground" />
             <span>{selectedCards.length} cards selecionados</span>
           </div>
         )}
