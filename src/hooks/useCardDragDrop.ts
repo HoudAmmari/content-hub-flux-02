@@ -1,8 +1,9 @@
+
+import { Content } from "@/models/types";
+import { contentService } from "@/services/contentService";
 import { DropResult } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
-import { contentService } from "@/services/contentService";
-import { Content } from "@/models/types";
-import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 interface UseCardDragDropProps {
   cards: Content[];
@@ -18,292 +19,226 @@ export function useCardDragDrop({
   onCardsUpdate 
 }: UseCardDragDropProps) {
   const { toast } = useToast();
-
-  // Helper function to get status from droppableId
-  const getStatusFromDroppableId = (droppableId: string): string => {
-    if (droppableId.startsWith('status-')) {
-      return droppableId.substring(7); // Remove 'status-' prefix
-    }
-    return droppableId;
-  };
-
-  // Helper function to get card ID from draggableId
-  const getCardIdFromDraggableId = (draggableId: string): string => {
-    if (draggableId.startsWith('card-')) {
-      return draggableId.substring(5); // Remove 'card-' prefix
-    }
-    return draggableId;
-  };
-
+  const { t } = useTranslation();
+  
+  // Manipula o resultado do drag and drop
   const handleDragEnd = async (result: DropResult) => {
-    console.log("Drag end result:", result);
+    console.log("[handleDragEnd] Drag ended with result:", result);
     
-    const { source, destination, draggableId } = result;
-    
-    // If there's no destination, the card was dropped outside a valid area
-    if (!destination) {
-      console.log("No destination found, ignoring drag");
+    // Ignora se não houver destination
+    if (!result.destination) {
+      console.log("[handleDragEnd] No destination, skipping...");
       return;
     }
-
-    // Get the status names and card ID
-    const sourceStatus = getStatusFromDroppableId(source.droppableId);
-    const destinationStatus = getStatusFromDroppableId(destination.droppableId);
-    const cardId = getCardIdFromDraggableId(draggableId);
     
-    console.log(`Moving card ${cardId} from ${sourceStatus} to ${destinationStatus}`);
-
-    // Check if this card is part of a multi-selection
-    const isMultiCardMove = selectedCards.includes(cardId) && selectedCards.length > 1;
+    // Extrai o ID do card
+    const draggedCardId = result.draggableId.startsWith('card-') 
+      ? result.draggableId.substring(5) 
+      : result.draggableId;
     
-    try {
-      if (isMultiCardMove) {
-        await moveSelectedCards(sourceStatus, destinationStatus, destination.index);
-      } else {
-        if (sourceStatus === destinationStatus) {
-          await handleSameColumnReorder(sourceStatus, source.index, destination.index, cardId);
-        } else {
-          await handleColumnChange(cardId, sourceStatus, destinationStatus, destination.index);
-        }
-      }
+    console.log(`[handleDragEnd] Dragged card ID: ${draggedCardId}`);
+    
+    // Verifica se o card está selecionado
+    const isSelected = selectedCards.includes(draggedCardId);
+    
+    // Determina quais cards serão movidos
+    const cardsToMove = isSelected 
+      ? selectedCards 
+      : [draggedCardId];
+    
+    console.log(`[handleDragEnd] Cards to move: ${cardsToMove.join(', ')}`);
+    
+    // Extrai os status (origem e destino)
+    const sourceStatus = result.source.droppableId.startsWith('status-') 
+      ? result.source.droppableId.substring(7) 
+      : result.source.droppableId;
       
-      // Notify success without triggering a full reload
-      toast({
-        title: "Sucesso",
-        description: "Cards atualizados com sucesso"
-      });
-    } catch (error) {
-      console.error("Erro durante o drag and drop:", error);
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao mover o(s) card(s).",
-        variant: "destructive"
-      });
-      // Only refresh the board if there was an error to ensure UI consistency
-      onCardsUpdate();
-    }
-  };
-
-  const handleSameColumnReorder = async (
-    columnId: string, 
-    sourceIndex: number, 
-    destinationIndex: number, 
-    cardId: string
-  ) => {
-    console.log(`Reordenando na mesma coluna ${columnId} do índice ${sourceIndex} para ${destinationIndex}`);
+    const destinationStatus = result.destination.droppableId.startsWith('status-') 
+      ? result.destination.droppableId.substring(7) 
+      : result.destination.droppableId;
+    
+    console.log(`[handleDragEnd] From ${sourceStatus} to ${destinationStatus}. Source index: ${result.source.index}, Dest index: ${result.destination.index}`);
     
     try {
-      const draggedCard = await contentService.getContentById(cardId);
-      
-      if (!draggedCard) {
-        console.error(`Card ${cardId} não encontrado`);
-        toast({
-          title: "Erro",
-          description: "Não foi possível encontrar o card para reordenar.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log("Card arrastado:", draggedCard);
-      
-      // Buscar todos os cards na coluna para atualizar seus índices
-      const { contents: regularCards } = await contentService.getContentsByChannel(
-        draggedCard.channelId,
-        false,
-        { status: columnId }
-      );
-      
-      const allCards = [...regularCards];
-      
-      // Adicionar épicos se necessário
-      if (draggedCard.isEpic) {
-        const { epics: epicCards } = await contentService.getEpicsByChannel(
-          draggedCard.channelId,
-          { status: columnId }
+      if (sourceStatus === destinationStatus) {
+        // Reordenação dentro da mesma coluna
+        await handleSameColumnReorder(
+          draggedCardId,
+          cardsToMove,
+          sourceStatus,
+          result.source.index,
+          result.destination.index
         );
-        allCards.push(...epicCards);
+      } else {
+        // Movimentação entre colunas
+        await handleColumnChange(
+          draggedCardId,
+          cardsToMove,
+          sourceStatus,
+          destinationStatus,
+          result.destination.index
+        );
       }
       
-      // Ordenar pelo índice atual
-      allCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      // Notifica o componente pai para atualizar
+      console.log(`[handleDragEnd] Updating columns: ${sourceStatus}, ${destinationStatus}`);
+      onCardsUpdate(sourceStatus, destinationStatus);
       
-      // Log da ordem atual para depuração
-      console.log("Antes da reordenação:", allCards.map(c => ({ id: c.id, title: c.title, index: c.index })));
-      
-      // Remover o card arrastado do array
-      const filteredCards = allCards.filter(card => card.id !== cardId);
-      
-      // Inserir o card arrastado na nova posição
-      filteredCards.splice(destinationIndex, 0, draggedCard);
-      
-      // Criar atualizações de índices para todos os cards
-      const updates = filteredCards.map((card, index) => ({
-        id: card.id,
-        index
-      }));
-      
-      console.log("Atualizações de índices após reordenação:", updates);
-      
-      // Persistir as mudanças de índice no banco de dados
-      const result = await contentService.updateContentIndices(updates);
-      console.log("Resultado da atualização de índices:", result);
-      
-      // Notificar o componente pai para atualizar a coluna específica
-      onCardsUpdate(columnId);
     } catch (error) {
-      console.error("Erro ao reordenar cards:", error);
-      throw error; // Deixar o chamador lidar com o erro
+      console.error("Error handling drag end:", error);
+      toast({
+        title: t("general.error"),
+        description: t("kanban.dragError"),
+        variant: "destructive",
+      });
     }
   };
-
+  
+  // Manipula reordenação na mesma coluna
+  const handleSameColumnReorder = async (
+    draggedCardId: string,
+    cardsToMove: string[],
+    status: string,
+    sourceIndex: number,
+    destinationIndex: number
+  ) => {
+    console.log(`[handleSameColumnReorder] Reordering in ${status} from ${sourceIndex} to ${destinationIndex}`);
+    console.log(`[handleSameColumnReorder] Cards to reorder: ${cardsToMove.join(', ')}`);
+    
+    // Obtém todos os cards da coluna
+    const columnCards = [...cards, ...epics].filter(card => card.status === status);
+    console.log(`[handleSameColumnReorder] Cards in column before reordering:`, 
+      columnCards.map(c => ({ id: c.id, title: c.title, index: c.index })));
+    
+    // Ordena os cards pelo índice atual
+    columnCards.sort((a, b) => {
+      const indexA = a.index ?? 0;
+      const indexB = b.index ?? 0;
+      return indexA - indexB;
+    });
+    
+    // Obtém os cards que não serão movidos
+    const nonMovingCards = columnCards.filter(card => !cardsToMove.includes(card.id));
+    
+    // Cria um novo array para definir a nova ordem
+    let newOrder: Content[] = [];
+    
+    // Primeiro, adicione todos os cards na ordem original
+    newOrder = [...columnCards];
+    
+    // Remove os cards que serão movidos
+    newOrder = newOrder.filter(card => !cardsToMove.includes(card.id));
+    
+    // Obtém os cards que serão movidos, na ordem original
+    const movingCards = columnCards.filter(card => cardsToMove.includes(card.id));
+    
+    // Insere os cards movidos na posição de destino
+    newOrder.splice(destinationIndex, 0, ...movingCards);
+    
+    console.log("[handleSameColumnReorder] New order:", 
+      newOrder.map(c => ({ id: c.id, title: c.title })));
+    
+    // Prepara as atualizações de índice
+    const updates = newOrder.map((card, index) => ({
+      id: card.id,
+      index
+    }));
+    
+    console.log("[handleSameColumnReorder] Index updates:", updates);
+    
+    // Atualiza os índices no servidor
+    await contentService.updateContentIndices(updates);
+  };
+  
+  // Manipula mudança de coluna
   const handleColumnChange = async (
-    cardId: string,
+    draggedCardId: string,
+    cardsToMove: string[],
     sourceStatus: string,
     destinationStatus: string,
     destinationIndex: number
   ) => {
-    console.log(`Movendo card ${cardId} de ${sourceStatus} para ${destinationStatus} na posição ${destinationIndex}`);
+    console.log(`[handleColumnChange] Moving from ${sourceStatus} to ${destinationStatus} at index ${destinationIndex}`);
     
-    try {
-      // Get the card directly from the service to ensure we have the latest data
-      const movedCard = await contentService.getContentById(cardId);
-      
-      if (!movedCard) {
-        console.error(`Card ${cardId} não encontrado`);
-        toast({
-          title: "Erro",
-          description: "Não foi possível encontrar o card para mover.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Get all cards in the destination column
-      const { contents: destinationCards } = await contentService.getContentsByChannel(
-        movedCard.channelId,
-        false,
-        { status: destinationStatus }
-      );
-      
-      // Add epics if needed
-      if (movedCard.isEpic) {
-        const { epics: destinationEpics } = await contentService.getEpicsByChannel(
-          movedCard.channelId,
-          { status: destinationStatus }
-        );
-        destinationCards.push(...destinationEpics);
-      }
-      
-      // Sort by current index
-      destinationCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-      
-      // Log current order for debugging
-      console.log("Destination before:", destinationCards.map(c => ({ id: c.id, index: c.index })));
-      
-      // Remove the moved card if it's already in the destination array (unlikely but possible)
-      const filteredDestinationCards = destinationCards.filter(card => card.id !== cardId);
-      
-      // Create a copy with the new status
-      const updatedCard = {
-        ...movedCard,
-        status: destinationStatus
-      };
-      
-      // Insert the card at the new position
-      filteredDestinationCards.splice(destinationIndex, 0, updatedCard);
-      
-      const destinationUpdates = filteredDestinationCards.map((card, index) => ({
-        id: card.id,
-        index
-      }));
-      
-      console.log("Destination after:", destinationUpdates);
-      
-      // First update all indices so the positions are correct
-      await contentService.updateContentIndices(destinationUpdates);
-      
-      // Then update the card's status in the database
-      await contentService.updateContent(cardId, {
+    // Obtém cards da coluna de destino
+    const destinationCards = [...cards, ...epics].filter(
+      card => card.status === destinationStatus
+    );
+    
+    // Ordena os cards pelo índice atual
+    destinationCards.sort((a, b) => {
+      const indexA = a.index ?? 0;
+      const indexB = b.index ?? 0;
+      return indexA - indexB;
+    });
+    
+    // Para cada card movido, atualize seu status
+    for (const cardId of cardsToMove) {
+      await contentService.updateContent(cardId, { 
         status: destinationStatus
       });
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      throw error; // Let the caller handle the error
     }
-  };
-
-  const moveSelectedCards = async (
-    sourceStatus: string, 
-    destinationStatus: string, 
-    destinationStartIndex: number
-  ) => {
-    console.log(`Movendo ${selectedCards.length} cards selecionados de ${sourceStatus} para ${destinationStatus}`);
     
-    try {
-      // We'll fetch each card directly from the service to ensure we have the latest data
-      const selectedCardObjects = [];
-      let channelId = "";
-      
-      for (const cardId of selectedCards) {
-        const card = await contentService.getContentById(cardId);
-        if (card) {
-          selectedCardObjects.push(card);
-          if (!channelId) channelId = card.channelId;
+    // Calcula novos índices para todos os cards da coluna de destino
+    const cardUpdates = [];
+    
+    // 1. Primeiro, recalcule os índices dos cards existentes
+    // Insira um espaço para os cards movidos na posição de destino
+    let currentIndex = 0;
+    for (let i = 0; i < destinationCards.length + cardsToMove.length; i++) {
+      if (i === destinationIndex) {
+        // Reserva posições para os cards movidos
+        for (const cardId of cardsToMove) {
+          cardUpdates.push({
+            id: cardId,
+            index: currentIndex
+          });
+          currentIndex++;
         }
       }
       
-      if (selectedCardObjects.length === 0) {
-        console.error("No selected cards found");
-        return;
+      if (i < destinationCards.length) {
+        // Atualiza os índices dos cards existentes
+        cardUpdates.push({
+          id: destinationCards[i].id,
+          index: currentIndex
+        });
+        currentIndex++;
       }
-      
-      // Get all cards in the destination column that are not selected
-      const { contents: regularCards } = await contentService.getContentsByChannel(
-        channelId,
-        false,
-        { status: destinationStatus }
-      );
-      
-      const { epics: epicCards } = await contentService.getEpicsByChannel(
-        channelId,
-        { status: destinationStatus }
-      );
-      
-      const destinationCards = [...regularCards, ...epicCards]
-        .filter(card => !selectedCards.includes(card.id))
-        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-      
-      // Insert all selected cards at the destination index
-      for (let i = 0; i < selectedCardObjects.length; i++) {
-        destinationCards.splice(destinationStartIndex + i, 0, {
-          ...selectedCardObjects[i],
-          status: destinationStatus
+    }
+    
+    // Se o ponto de inserção for no final
+    if (destinationIndex >= destinationCards.length) {
+      for (const cardId of cardsToMove) {
+        cardUpdates.push({
+          id: cardId,
+          index: currentIndex++
         });
       }
-      
-      // Prepare index updates for all cards in the destination column
-      const destinationUpdates = destinationCards.map((card, index) => ({
-        id: card.id,
-        index
-      }));
-      
-      console.log("Multi-card destination updates:", destinationUpdates);
-      
-      // First update all indices so the positions are correct
-      await contentService.updateContentIndices(destinationUpdates);
-      
-      // Then update the status of all selected cards
-      for (const cardId of selectedCards) {
-        await contentService.updateContent(cardId, {
-          status: destinationStatus
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao mover múltiplos cards:", error);
-      throw error; // Let the caller handle the error
+    }
+    
+    console.log("[handleColumnChange] Index updates:", cardUpdates);
+    
+    // Atualiza os índices no servidor
+    await contentService.updateContentIndices(cardUpdates);
+    
+    // Recalcule os índices da coluna original também, para fechar "buracos"
+    const sourceCards = [...cards, ...epics]
+      .filter(card => card.status === sourceStatus && !cardsToMove.includes(card.id))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    
+    const sourceUpdates = sourceCards.map((card, index) => ({
+      id: card.id,
+      index
+    }));
+    
+    if (sourceUpdates.length > 0) {
+      console.log("[handleColumnChange] Source column updates:", sourceUpdates);
+      await contentService.updateContentIndices(sourceUpdates);
     }
   };
 
-  return { handleDragEnd };
+  return {
+    handleDragEnd
+  };
 }

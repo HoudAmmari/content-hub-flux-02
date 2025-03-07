@@ -238,19 +238,27 @@ export const contentService = {
     try {
       console.log("Atualizando índices de conteúdos:", contentUpdates.map(u => `${u.id}: ${u.index}`).join(', '));
       
-      for (const update of contentUpdates) {
+      // Criar um array de promessas para as atualizações
+      const updatePromises = contentUpdates.map(async update => {
         const existingContent = db.get(update.id);
         if (existingContent) {
+          const oldIndex = existingContent.index;
+          
           // Atualizar diretamente no banco de dados em memória para evitar leitura extra
           existingContent.index = update.index;
           existingContent.updatedAt = new Date().toISOString();
           db.set(update.id, existingContent);
           
-          console.log(`Índice do card ${existingContent.id} (${existingContent.title}) atualizado para ${update.index}`);
+          console.log(`Índice do card ${existingContent.id} (${existingContent.title}) atualizado de ${oldIndex} para ${update.index}`);
+          return true;
         } else {
           console.warn(`Card ${update.id} não encontrado para atualização de índice`);
+          return false;
         }
-      }
+      });
+      
+      // Executar todas as atualizações
+      await Promise.all(updatePromises);
       
       // Verificar se os índices foram atualizados corretamente
       for (const update of contentUpdates) {

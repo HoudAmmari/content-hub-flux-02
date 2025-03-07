@@ -1,3 +1,4 @@
+
 import { Channel, Content } from "@/models/types";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
@@ -28,6 +29,7 @@ interface ColumnState {
   hasMore: boolean;
   loading: boolean;
   totalCount: number;
+  timestamp: number; // Timestamp for tracking updates
 }
 
 export function KanbanColumns({
@@ -126,7 +128,8 @@ export function KanbanColumns({
             page: 0,
             hasMore: result.hasMore,
             loading: false,
-            totalCount: result.total
+            totalCount: result.total,
+            timestamp: Date.now() // Add timestamp
           };
         } catch (error) {
           console.error(`Erro ao carregar dados para o status ${status.name}:`, error);
@@ -135,7 +138,8 @@ export function KanbanColumns({
             page: 0,
             hasMore: false,
             loading: false,
-            totalCount: 0
+            totalCount: 0,
+            timestamp: Date.now() // Add timestamp
           };
         }
       }
@@ -155,6 +159,7 @@ export function KanbanColumns({
     const refreshSpecificColumns = async () => {
       // Criar uma cópia do estado atual para atualizar
       const updatedColumnStates = { ...columnStates };
+      let hasUpdates = false;
       
       // Atualizar cada coluna que precisa de atualização
       for (const status of columnsToRefresh) {
@@ -169,21 +174,47 @@ export function KanbanColumns({
             showEpics
           );
           
-          updatedColumnStates[status] = {
-            ...currentState,
-            cards: result.cards,
-            hasMore: result.hasMore,
-            totalCount: result.total
-          };
+          // Compare if cards have actually changed to avoid unnecessary rerenders
+          const currentCardIds = currentState.cards.map(c => c.id).join(',');
+          const newCardIds = result.cards.map(c => c.id).join(',');
           
-          console.log(`Coluna ${status} atualizada com sucesso. Novos cards:`, 
-            result.cards.map(c => ({ id: c.id, title: c.title, index: c.index })));
+          // Also check if indices have changed by creating a map of id -> index
+          const currentCardIndices = Object.fromEntries(
+            currentState.cards.map(c => [c.id, c.index])
+          );
+          
+          const hasChanges = 
+            currentCardIds !== newCardIds || 
+            result.cards.some(c => currentCardIndices[c.id] !== c.index);
+          
+          if (hasChanges) {
+            console.log(`Encontradas mudanças na coluna ${status}, atualizando...`);
+            hasUpdates = true;
+            
+            updatedColumnStates[status] = {
+              ...currentState,
+              cards: result.cards,
+              hasMore: result.hasMore,
+              totalCount: result.total,
+              timestamp: Date.now() // Update timestamp on changes
+            };
+            
+            console.log(`Coluna ${status} atualizada com sucesso. Novos cards:`, 
+              result.cards.map(c => ({ id: c.id, title: c.title, index: c.index })));
+          } else {
+            console.log(`Não há mudanças detectadas na coluna ${status}`);
+          }
         } catch (error) {
           console.error(`Erro ao atualizar coluna ${status}:`, error);
         }
       }
       
-      setColumnStates(updatedColumnStates);
+      if (hasUpdates) {
+        console.log("Aplicando atualizações de colunas...");
+        setColumnStates(updatedColumnStates);
+      } else {
+        console.log("Nenhuma atualização necessária para as colunas.");
+      }
       
       // Notificar parent que a atualização está completa
       if (onColumnsRefreshed) {
@@ -191,7 +222,10 @@ export function KanbanColumns({
       }
     };
     
-    refreshSpecificColumns();
+    // Use setTimeout to ensure this runs after any in-progress updates
+    setTimeout(() => {
+      refreshSpecificColumns();
+    }, 50);
   }, [columnsToRefresh, selectedChannel, columnStates, showEpics, loadColumnData, onColumnsRefreshed]);
 
   // Atualiza uma coluna específica sem recarregar todas
@@ -216,7 +250,8 @@ export function KanbanColumns({
           ...prev[status],
           cards: result.cards,
           hasMore: result.hasMore,
-          totalCount: result.total
+          totalCount: result.total,
+          timestamp: Date.now() // Update timestamp
         }
       }));
       
@@ -259,7 +294,8 @@ export function KanbanColumns({
           cards: [...prev[status].cards, ...result.cards],
           page: nextPage,
           hasMore: result.hasMore,
-          loading: false
+          loading: false,
+          timestamp: Date.now() // Update timestamp
         }
       }));
     } catch (error) {
@@ -308,7 +344,7 @@ export function KanbanColumns({
             >
               {visibleCards.map((card, index) => (
                 <KanbanCard
-                  key={card.id}
+                  key={`${card.id}-${columnState.timestamp}`} // Add timestamp to key to force re-render
                   card={card}
                   index={index}
                   onUpdate={() => refreshColumn(status.name)}
