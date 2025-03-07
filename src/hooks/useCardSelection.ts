@@ -1,11 +1,12 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Content } from "@/models/types";
 
 export function useCardSelection(cards: Content[], epics: Content[]) {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [lastSelectedCard, setLastSelectedCard] = useState<string | null>(null);
   const [isMultiSelecting, setIsMultiSelecting] = useState(false);
+  const multiSelectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getColumnCardsFromId = useCallback((cardId: string) => {
     const card = [...cards, ...epics].find(c => c.id === cardId);
@@ -26,11 +27,25 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
     return [...columnCards, ...epicCards];
   }, [cards, epics]);
 
+  const startMultiSelectMode = useCallback(() => {
+    setIsMultiSelecting(true);
+    
+    // Clear any existing timeout
+    if (multiSelectTimeoutRef.current) {
+      clearTimeout(multiSelectTimeoutRef.current);
+    }
+    
+    // Set a longer timeout for multi-select mode
+    multiSelectTimeoutRef.current = setTimeout(() => {
+      setIsMultiSelecting(false);
+    }, 500);
+  }, []);
+
   const handleCardSelect = useCallback((cardId: string, event: React.MouseEvent) => {
     // Handle comma-separated list of IDs (from selection box)
     if (cardId.includes(',')) {
       const newSelectedIds = cardId.split(',');
-      setIsMultiSelecting(true);
+      startMultiSelectMode();
       
       if (event.ctrlKey || event.metaKey) {
         // Add to existing selection
@@ -48,11 +63,6 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
         setLastSelectedCard(newSelectedIds[newSelectedIds.length - 1]);
       }
       
-      // Reset multi-selecting flag after a short delay
-      setTimeout(() => {
-        setIsMultiSelecting(false);
-      }, 300);
-      
       return;
     }
     
@@ -61,6 +71,7 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
     
     // Normal single card selection
     if (event.ctrlKey || event.metaKey) {
+      startMultiSelectMode();
       setSelectedCards(prev => 
         prev.includes(cardId) 
           ? prev.filter(id => id !== cardId) 
@@ -68,6 +79,7 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
       );
       setLastSelectedCard(cardId);
     } else if (event.shiftKey && lastSelectedCard) {
+      startMultiSelectMode();
       const allColumnCards = getColumnCardsFromId(cardId);
       const currentIndex = allColumnCards.findIndex(card => card.id === cardId);
       const lastIndex = allColumnCards.findIndex(card => card.id === lastSelectedCard);
@@ -90,7 +102,7 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
       setSelectedCards(cardId === lastSelectedCard && selectedCards.length === 1 ? [] : [cardId]);
       setLastSelectedCard(cardId);
     }
-  }, [selectedCards, lastSelectedCard, getColumnCardsFromId, isMultiSelecting]);
+  }, [selectedCards, lastSelectedCard, getColumnCardsFromId, isMultiSelecting, startMultiSelectMode]);
 
   const clearSelection = useCallback(() => {
     if (!isMultiSelecting) {

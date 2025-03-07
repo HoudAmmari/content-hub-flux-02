@@ -9,10 +9,10 @@ interface CardDragPreviewProps {
 
 export function CardDragPreview({ count, className }: CardDragPreviewProps) {
   return (
-    <Card className={cn("cursor-grabbing shadow-md select-none bg-primary/10", className)}>
+    <Card className={cn("cursor-grabbing shadow-md select-none bg-primary-foreground border-primary", className)}>
       <CardContent className="p-3 space-y-2">
         <div className="flex justify-between items-center">
-          <h3 className="font-medium text-sm">
+          <h3 className="font-medium text-sm text-primary">
             {count} cards selecionados
           </h3>
         </div>
