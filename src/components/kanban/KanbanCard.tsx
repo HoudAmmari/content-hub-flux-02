@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -129,7 +130,7 @@ export function KanbanCard({
               snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
               isSelected && "ring-2 ring-primary ring-offset-2",
-              isSelected && snapshot.isDragging && selectedCards.length > 1 ? "opacity-50" : ""
+              isSelected && snapshot.isDragging ? "opacity-50" : ""
             )}
             onClick={handleCardClick}
           >
