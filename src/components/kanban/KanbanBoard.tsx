@@ -1,10 +1,11 @@
+
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Content, Channel } from "@/models/types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { useCardSelection } from "@/hooks/useCardSelection";
 import { SelectionBox } from "./SelectionBox";
 import { SelectionIndicator } from "./SelectionIndicator";
-import { useSelectionBox";
+import { useSelectionBox } from "@/hooks/useSelectionBox";
 import { useCardDeletion } from "@/hooks/useCardDeletion";
 import { useCardDragDrop } from "@/hooks/useCardDragDrop";
 import { DragPreviewWrapper } from "./DragPreviewWrapper";
