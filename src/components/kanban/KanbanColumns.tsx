@@ -3,7 +3,7 @@ import { Channel, Content } from "@/models/types";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 import { contentService } from "@/services/contentService";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +46,53 @@ export function KanbanColumns({
   // Estado para controlar paginação por coluna
   const [columnStates, setColumnStates] = useState<Record<string, ColumnState>>({});
 
+  // Função para carregar dados da coluna de forma independente
+  const loadColumnData = useCallback(async (
+    channelId: string, 
+    status: string, 
+    page: number, 
+    showEpics: boolean
+  ) => {
+    try {
+      // Buscar conteúdos regulares
+      const { contents, total } = await contentService.getContentsByChannel(
+        channelId,
+        false,
+        {
+          status: status,
+          page: page,
+          pageSize
+        }
+      );
+      
+      // Buscar épicos se necessário
+      let epicResults = { epics: [] as Content[], total: 0 };
+      if (showEpics) {
+        epicResults = await contentService.getEpicsByChannel(
+          channelId,
+          {
+            status: status,
+            page: page,
+            pageSize
+          }
+        );
+      }
+      
+      // Combinar resultados
+      const allCards = [...contents, ...epicResults.epics];
+      const totalItems = total + epicResults.total;
+      
+      return {
+        cards: allCards,
+        total: totalItems,
+        hasMore: totalItems > (page + 1) * pageSize
+      };
+    } catch (error) {
+      console.error(`Erro ao carregar dados para o status ${status}:`, error);
+      throw error;
+    }
+  }, [pageSize]);
+
   // Inicializar colunas quando o canal é selecionado ou quando muda o pageSize
   useEffect(() => {
     if (!selectedChannel) return;
@@ -56,40 +103,14 @@ export function KanbanColumns({
       // Buscar dados para cada status separadamente
       for (const status of selectedChannel.statuses) {
         try {
-          // Buscar conteúdos regulares
-          const { contents, total } = await contentService.getContentsByChannel(
-            selectedChannel.id,
-            false,
-            {
-              status: status.name,
-              page: 0,
-              pageSize
-            }
-          );
-          
-          // Buscar épicos se necessário
-          let epicResults = { epics: [] as Content[], total: 0 };
-          if (showEpics) {
-            epicResults = await contentService.getEpicsByChannel(
-              selectedChannel.id,
-              {
-                status: status.name,
-                page: 0,
-                pageSize
-              }
-            );
-          }
-          
-          // Combinar resultados
-          const allCards = [...contents, ...epicResults.epics];
-          const totalItems = total + epicResults.total;
+          const result = await loadColumnData(selectedChannel.id, status.name, 0, showEpics);
           
           newColumnStates[status.name] = {
-            cards: allCards,
+            cards: result.cards,
             page: 0,
-            hasMore: totalItems > allCards.length,
+            hasMore: result.hasMore,
             loading: false,
-            totalCount: totalItems
+            totalCount: result.total
           };
         } catch (error) {
           console.error(`Erro ao carregar dados para o status ${status.name}:`, error);
@@ -107,7 +128,35 @@ export function KanbanColumns({
     };
     
     loadInitialData();
-  }, [selectedChannel, showEpics, pageSize]);
+  }, [selectedChannel, showEpics, pageSize, loadColumnData]);
+
+  // Atualiza uma coluna específica sem recarregar todas
+  const refreshColumn = useCallback(async (status: string) => {
+    if (!selectedChannel || !columnStates[status]) return;
+    
+    const currentState = columnStates[status];
+    
+    try {
+      const result = await loadColumnData(
+        selectedChannel.id, 
+        status, 
+        currentState.page, 
+        showEpics
+      );
+      
+      setColumnStates(prev => ({
+        ...prev,
+        [status]: {
+          ...prev[status],
+          cards: result.cards,
+          hasMore: result.hasMore,
+          totalCount: result.total
+        }
+      }));
+    } catch (error) {
+      console.error(`Erro ao atualizar coluna ${status}:`, error);
+    }
+  }, [selectedChannel, columnStates, showEpics, loadColumnData]);
 
   const handleLoadMore = async (status: string) => {
     if (!selectedChannel || !columnStates[status]) return;
@@ -126,45 +175,16 @@ export function KanbanColumns({
     try {
       // Buscar mais conteúdos para este status
       const nextPage = currentState.page + 1;
-      
-      // Buscar conteúdos regulares
-      const { contents } = await contentService.getContentsByChannel(
-        selectedChannel.id,
-        false,
-        {
-          status,
-          page: nextPage,
-          pageSize
-        }
-      );
-      
-      // Buscar épicos se necessário
-      let epicResults = { epics: [] as Content[] };
-      if (showEpics) {
-        epicResults = await contentService.getEpicsByChannel(
-          selectedChannel.id,
-          {
-            status,
-            page: nextPage,
-            pageSize
-          }
-        );
-      }
-      
-      // Combinar os resultados
-      const newCards = [...contents, ...epicResults.epics];
-      
-      // Verificar se há mais itens para carregar
-      const hasMore = newCards.length === pageSize;
+      const result = await loadColumnData(selectedChannel.id, status, nextPage, showEpics);
       
       // Atualizar o estado com os novos cards
       setColumnStates(prev => ({
         ...prev,
         [status]: {
           ...prev[status],
-          cards: [...prev[status].cards, ...newCards],
+          cards: [...prev[status].cards, ...result.cards],
           page: nextPage,
-          hasMore,
+          hasMore: result.hasMore,
           loading: false
         }
       }));
@@ -217,7 +237,7 @@ export function KanbanColumns({
                   key={card.id}
                   card={card}
                   index={index}
-                  onUpdate={onCardsUpdate}
+                  onUpdate={() => refreshColumn(status.name)}
                   isSelected={isCardSelected(card.id)}
                   onSelect={(e) => onCardSelect(card.id, e)}
                   registerCardPosition={registerCardPosition}

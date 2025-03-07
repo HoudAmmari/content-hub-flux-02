@@ -1,4 +1,3 @@
-
 import { DropResult } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
@@ -67,8 +66,12 @@ export function useCardDragDrop({
         }
       }
       
-      // Always update the UI after a drag operation
-      onCardsUpdate();
+      // Update the UI optimistically without triggering a full reload
+      // Just notify that the operation was successful
+      toast({
+        title: "Sucesso",
+        description: "Cards atualizados com sucesso"
+      });
     } catch (error) {
       console.error("Erro durante o drag and drop:", error);
       toast({
@@ -76,7 +79,7 @@ export function useCardDragDrop({
         description: "Ocorreu um erro ao mover o(s) card(s).",
         variant: "destructive"
       });
-      // Refresh the board to ensure UI consistency
+      // Only refresh the board if there was an error to ensure UI consistency
       onCardsUpdate();
     }
   };

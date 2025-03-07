@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Content, Channel } from "@/models/types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { useCardSelection } from "@/hooks/useCardSelection";
@@ -37,11 +37,17 @@ export function KanbanBoard({
   const { deleteDialogOpen, setDeleteDialogOpen, isDeleting, deleteSelectedCards } = 
     useCardDeletion(onCardsUpdate);
   
+  // Use a more optimistic approach for drag and drop with a callback to avoid full refresh
+  const handleOptimisticUpdate = useCallback(() => {
+    // Only log the update instead of triggering a full refresh
+    console.log("Card positions updated optimistically");
+  }, []);
+  
   const { handleDragEnd } = useCardDragDrop({ 
     cards, 
     epics, 
     selectedCards, 
-    onCardsUpdate 
+    onCardsUpdate: handleOptimisticUpdate 
   });
   
   const { 
@@ -111,7 +117,7 @@ export function KanbanBoard({
           cards={cards}
           epics={epics}
           showEpics={showEpics}
-          onCardsUpdate={onCardsUpdate}
+          onCardsUpdate={handleOptimisticUpdate}
           selectedCards={selectedCards}
           onCardSelect={onCardSelect}
           registerCardPosition={registerCardPosition}
