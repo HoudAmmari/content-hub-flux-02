@@ -45,17 +45,19 @@ export function KanbanColumns({
 
   // Create a safer droppable ID that's consistent
   const createDroppableId = (statusName: string) => {
-    // Use a simple alphanumeric representation 
+    // Use a simple alphanumeric representation - ensure it's stable and unique
     return `status-${statusName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
   };
 
   console.log("Channel statuses:", selectedChannel?.statuses?.map(s => s.name));
 
   return (
-    <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
+    <div className="flex flex-row flex-nowrap gap-4" style={{ minHeight: '70vh', paddingBottom: '100px' }}>
       {selectedChannel?.statuses?.map((status) => {
         const droppableId = createDroppableId(status.name);
-        console.log(`Creating column for status: ${status.name}, droppableId: ${droppableId}`);
+        const columnCards = getColumnCards(status.name);
+        
+        console.log(`Creating column for status: ${status.name}, droppableId: ${droppableId}, cards: ${columnCards.length}`);
         
         return (
           <div key={status.name} className="shrink-0 w-64">
@@ -65,7 +67,7 @@ export function KanbanColumns({
               droppableId={droppableId}
               type="CARD"
             >
-              {getColumnCards(status.name).map((card, index) => (
+              {columnCards.map((card, index) => (
                 <KanbanCard
                   key={card.id}
                   card={card}

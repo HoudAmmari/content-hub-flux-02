@@ -1,4 +1,3 @@
-
 import { DropResult } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
@@ -44,7 +43,22 @@ export function useCardDragDrop({
     }
     
     // If we can't determine the original status, return the droppableId as is
-    console.log(`Could not find status for droppableId: ${droppableId}`);
+    console.log(`Could not find status for droppableId: ${droppableId}, using fallback method`);
+    
+    // Fallback method: try to extract status name from droppableId format
+    if (droppableId.startsWith('status-')) {
+      const statusPart = droppableId.substring(7);  // Remove "status-" prefix
+      // Try to find a close match in possible statuses
+      const allCards = [...cards, ...epics];
+      const allPossibleStatuses = [...new Set(allCards.map(card => card.status))];
+      
+      for (const status of allPossibleStatuses) {
+        if (status.toLowerCase().replace(/[^a-z0-9]/g, '-') === statusPart) {
+          return status;
+        }
+      }
+    }
+    
     return droppableId;
   };
 
@@ -64,10 +78,17 @@ export function useCardDragDrop({
           return card.id;
         }
       }
+      
+      // Fallback: try direct match (for cases where IDs weren't sanitized)
+      const directMatch = allCards.find(card => card.id === cardIdPart);
+      if (directMatch) {
+        console.log(`Found direct match card ${directMatch.id}`);
+        return directMatch.id;
+      }
     }
     
-    console.log(`Could not find card for draggableId: ${draggableId}`);
-    return draggableId;
+    console.log(`Could not find card for draggableId: ${draggableId}, using as is`);
+    return draggableId.startsWith('card-') ? draggableId.substring(5) : draggableId;
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -101,6 +122,11 @@ export function useCardDragDrop({
           await handleColumnChange(cardId, sourceStatus, destinationStatus, destination.index);
         }
       }
+      
+      // Always update the UI after a drag operation
+      setTimeout(() => {
+        onCardsUpdate();
+      }, 100);
     } catch (error) {
       console.error("Erro durante o drag and drop:", error);
       toast({
