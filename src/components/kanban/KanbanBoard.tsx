@@ -75,6 +75,7 @@ export function KanbanBoard({
     
     const newSelectedCards = getSelectedCardIds();
     if (newSelectedCards.length > 0) {
+      // Use metaKey (Command key on Mac, Ctrl key on Windows) to add to existing selection
       onCardSelect(newSelectedCards.join(','), { ctrlKey: true } as React.MouseEvent);
     }
     

@@ -9,7 +9,7 @@ interface CardDragPreviewProps {
 
 export function CardDragPreview({ count, className }: CardDragPreviewProps) {
   return (
-    <Card className={cn("cursor-grabbing shadow-md select-none bg-primary-foreground border-primary", className)}>
+    <Card className={cn("cursor-grabbing shadow-md select-none bg-primary-foreground border-primary min-w-[220px]", className)}>
       <CardContent className="p-3 space-y-2">
         <div className="flex justify-between items-center">
           <h3 className="font-medium text-sm text-primary">

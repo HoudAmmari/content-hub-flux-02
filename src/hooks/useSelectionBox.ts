@@ -25,6 +25,9 @@ export function useSelectionBox() {
   const boardRef = useRef<HTMLDivElement>(null);
   const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
+  
+  // Add minimum size threshold for selection to be active
+  const MIN_SELECTION_SIZE = 10; // pixels
 
   const registerCardPosition = useCallback((cardId: string, element: HTMLElement) => {
     if (element) {
@@ -67,12 +70,21 @@ export function useSelectionBox() {
   }, []);
 
   const getSelectedCardIds = useCallback((): string[] => {
-    if (!selectionBoxRef.current || !isSelecting) return [];
+    if (!isSelecting || !selectionBoxRef.current) return [];
+    
+    // Check if selection box is too small to be considered meaningful
+    const width = Math.abs(selectionEndPoint.x - selectionStartPoint.x);
+    const height = Math.abs(selectionEndPoint.y - selectionStartPoint.y);
+    
+    if (width < MIN_SELECTION_SIZE && height < MIN_SELECTION_SIZE) {
+      return [];
+    }
     
     const selectionRect = selectionBoxRef.current.getBoundingClientRect();
     const selectedIds: string[] = [];
     
     cardPositionsRef.current.forEach((cardRect, cardId) => {
+      // Check for any overlap between selection box and card
       if (
         cardRect.right >= selectionRect.left &&
         cardRect.left <= selectionRect.right &&
@@ -84,7 +96,7 @@ export function useSelectionBox() {
     });
     
     return selectedIds;
-  }, [isSelecting]);
+  }, [isSelecting, selectionStartPoint, selectionEndPoint]);
 
   const getSelectionBoxStyle = useCallback((): SelectionBoxStyle => {
     if (!isSelecting) {
