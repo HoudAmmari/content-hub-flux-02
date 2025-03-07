@@ -48,7 +48,6 @@ export function KanbanColumns({
   
   // Estado para controlar paginação por coluna
   const [columnStates, setColumnStates] = useState<Record<string, ColumnState>>({});
-  const [lastRefreshTimestamp, setLastRefreshTimestamp] = useState<number>(Date.now());
 
   // Função para carregar dados da coluna de forma independente
   const loadColumnData = useCallback(async (
@@ -58,8 +57,6 @@ export function KanbanColumns({
     showEpics: boolean
   ) => {
     try {
-      console.log(`Carregando dados para coluna ${status}, página ${page}, showEpics: ${showEpics}`);
-      
       // Buscar conteúdos regulares
       const { contents, total } = await contentService.getContentsByChannel(
         channelId,
@@ -87,14 +84,13 @@ export function KanbanColumns({
       // Combinar resultados
       const allCards = [...contents, ...epicResults.epics];
       
-      // Ordenar por índice para exibição correta na coluna
+      // Sort by index for proper ordering within the column
       allCards.sort((a, b) => {
+        // Use index as primary sort criterion
         const indexA = a.index ?? 0;
         const indexB = b.index ?? 0;
         return indexA - indexB;
       });
-      
-      console.log(`Coluna ${status}: cards ordenados:`, allCards.map(c => ({ id: c.id, title: c.title, index: c.index })));
       
       const totalItems = total + epicResults.total;
       
@@ -144,19 +140,17 @@ export function KanbanColumns({
     };
     
     loadInitialData();
-  }, [selectedChannel, showEpics, pageSize, loadColumnData, lastRefreshTimestamp]);
+  }, [selectedChannel, showEpics, pageSize, loadColumnData]);
   
-  // Effect para atualizar colunas específicas quando necessário
+  // Effect to refresh specific columns when needed
   useEffect(() => {
     if (!columnsToRefresh || columnsToRefresh.size === 0 || !selectedChannel) return;
     
-    console.log(`Atualizando colunas específicas:`, Array.from(columnsToRefresh));
-    
     const refreshSpecificColumns = async () => {
-      // Criar uma cópia do estado atual para atualizar
+      // Create a copy of the current state to update
       const updatedColumnStates = { ...columnStates };
       
-      // Atualizar cada coluna que precisa de atualização
+      // Refresh each column that needs updating
       for (const status of columnsToRefresh) {
         if (!columnStates[status]) continue;
         
@@ -175,9 +169,6 @@ export function KanbanColumns({
             hasMore: result.hasMore,
             totalCount: result.total
           };
-          
-          console.log(`Coluna ${status} atualizada com sucesso. Novos cards:`, 
-            result.cards.map(c => ({ id: c.id, title: c.title, index: c.index })));
         } catch (error) {
           console.error(`Erro ao atualizar coluna ${status}:`, error);
         }
@@ -185,7 +176,7 @@ export function KanbanColumns({
       
       setColumnStates(updatedColumnStates);
       
-      // Notificar parent que a atualização está completa
+      // Notify parent that refresh is complete
       if (onColumnsRefreshed) {
         onColumnsRefreshed();
       }
@@ -197,8 +188,6 @@ export function KanbanColumns({
   // Atualiza uma coluna específica sem recarregar todas
   const refreshColumn = useCallback(async (status: string) => {
     if (!selectedChannel || !columnStates[status]) return;
-    
-    console.log(`Solicitação para atualizar coluna ${status}`);
     
     const currentState = columnStates[status];
     
@@ -219,18 +208,10 @@ export function KanbanColumns({
           totalCount: result.total
         }
       }));
-      
-      console.log(`Coluna ${status} atualizada com sucesso após solicitação direta`);
     } catch (error) {
       console.error(`Erro ao atualizar coluna ${status}:`, error);
     }
   }, [selectedChannel, columnStates, showEpics, loadColumnData]);
-
-  // Adicionar função para recarregar todas as colunas
-  const refreshAllColumns = useCallback(() => {
-    console.log("Forçando atualização de todas as colunas...");
-    setLastRefreshTimestamp(Date.now());
-  }, []);
 
   const handleLoadMore = async (status: string) => {
     if (!selectedChannel || !columnStates[status]) return;
@@ -312,7 +293,7 @@ export function KanbanColumns({
                   card={card}
                   index={index}
                   onUpdate={() => refreshColumn(status.name)}
-                  isSelected={selectedCards.includes(card.id)}
+                  isSelected={isCardSelected(card.id)}
                   onSelect={(e) => onCardSelect(card.id, e)}
                   registerCardPosition={registerCardPosition}
                 />

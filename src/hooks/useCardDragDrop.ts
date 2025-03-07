@@ -1,3 +1,4 @@
+
 import { DropResult } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
@@ -8,7 +9,7 @@ interface UseCardDragDropProps {
   cards: Content[];
   epics: Content[];
   selectedCards: string[];
-  onCardsUpdate: (sourceStatus?: string, destinationStatus?: string) => void;
+  onCardsUpdate: () => void;
 }
 
 export function useCardDragDrop({ 
@@ -90,13 +91,13 @@ export function useCardDragDrop({
     destinationIndex: number, 
     cardId: string
   ) => {
-    console.log(`Reordenando na mesma coluna ${columnId} do índice ${sourceIndex} para ${destinationIndex}`);
+    console.log(`Reordering in same column ${columnId} from index ${sourceIndex} to ${destinationIndex}`);
     
     try {
       const draggedCard = await contentService.getContentById(cardId);
       
       if (!draggedCard) {
-        console.error(`Card ${cardId} não encontrado`);
+        console.error(`Card ${cardId} not found`);
         toast({
           title: "Erro",
           description: "Não foi possível encontrar o card para reordenar.",
@@ -105,55 +106,45 @@ export function useCardDragDrop({
         return;
       }
       
-      console.log("Card arrastado:", draggedCard);
-      
-      // Buscar todos os cards na coluna para atualizar seus índices
-      const { contents: regularCards } = await contentService.getContentsByChannel(
+      // Get all cards in the column to update their indices
+      const { contents: columnCards } = await contentService.getContentsByChannel(
         draggedCard.channelId,
         false,
         { status: columnId }
       );
       
-      const allCards = [...regularCards];
-      
-      // Adicionar épicos se necessário
+      // Add epics if they exist in this column
       if (draggedCard.isEpic) {
-        const { epics: epicCards } = await contentService.getEpicsByChannel(
+        const { epics: columnEpics } = await contentService.getEpicsByChannel(
           draggedCard.channelId,
           { status: columnId }
         );
-        allCards.push(...epicCards);
+        columnCards.push(...columnEpics);
       }
       
-      // Ordenar pelo índice atual
-      allCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      // Sort by current index
+      columnCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
-      // Log da ordem atual para depuração
-      console.log("Antes da reordenação:", allCards.map(c => ({ id: c.id, title: c.title, index: c.index })));
+      // Log current order for debugging
+      console.log("Before reordering:", columnCards.map(c => ({ id: c.id, index: c.index })));
       
-      // Remover o card arrastado do array
-      const filteredCards = allCards.filter(card => card.id !== cardId);
+      // Remove the dragged card from the array
+      const filteredCards = columnCards.filter(card => card.id !== cardId);
       
-      // Inserir o card arrastado na nova posição
+      // Insert the dragged card at the new position
       filteredCards.splice(destinationIndex, 0, draggedCard);
       
-      // Criar atualizações de índices para todos os cards
       const updates = filteredCards.map((card, index) => ({
         id: card.id,
         index
       }));
       
-      console.log("Atualizações de índices após reordenação:", updates);
+      console.log("After reordering:", updates);
       
-      // Persistir as mudanças de índice no banco de dados
-      const result = await contentService.updateContentIndices(updates);
-      console.log("Resultado da atualização de índices:", result);
-      
-      // Notificar o componente pai para atualizar a coluna específica
-      onCardsUpdate(columnId);
+      await contentService.updateContentIndices(updates);
     } catch (error) {
       console.error("Erro ao reordenar cards:", error);
-      throw error; // Deixar o chamador lidar com o erro
+      throw error; // Let the caller handle the error
     }
   };
 
@@ -163,14 +154,14 @@ export function useCardDragDrop({
     destinationStatus: string,
     destinationIndex: number
   ) => {
-    console.log(`Movendo card ${cardId} de ${sourceStatus} para ${destinationStatus} na posição ${destinationIndex}`);
+    console.log(`Moving card ${cardId} from ${sourceStatus} to ${destinationStatus} at index ${destinationIndex}`);
     
     try {
       // Get the card directly from the service to ensure we have the latest data
       const movedCard = await contentService.getContentById(cardId);
       
       if (!movedCard) {
-        console.error(`Card ${cardId} não encontrado`);
+        console.error(`Card ${cardId} not found`);
         toast({
           title: "Erro",
           description: "Não foi possível encontrar o card para mover.",
@@ -238,7 +229,7 @@ export function useCardDragDrop({
     destinationStatus: string, 
     destinationStartIndex: number
   ) => {
-    console.log(`Movendo ${selectedCards.length} cards selecionados de ${sourceStatus} para ${destinationStatus}`);
+    console.log(`Moving ${selectedCards.length} selected cards from ${sourceStatus} to ${destinationStatus}`);
     
     try {
       // We'll fetch each card directly from the service to ensure we have the latest data
