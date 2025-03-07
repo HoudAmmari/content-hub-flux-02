@@ -1,3 +1,4 @@
+
 import { Channel } from "@/models/types";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -47,6 +48,8 @@ export function KanbanHeader({
               <EpicToggle
                 showEpics={showEpics}
                 onShowEpicsChange={onShowEpicsChange}
+                epicCount={epicCount}
+                channelName={selectedChannel?.name}
               />
             </div>
           )}
