@@ -1,3 +1,4 @@
+
 import { DragDropContext, DropResult, Draggable } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
@@ -357,18 +358,8 @@ export function KanbanBoard({
   const renderDragPreview = () => {
     if (isDraggingSelected && draggedItem && selectedCards.includes(draggedItem)) {
       return (
-        <div className="fixed -left-1000 top-0 pointer-events-none z-50">
-          <Draggable draggableId={draggedItem} index={0} isDragDisabled={true}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.draggableProps}
-                {...provided.dragHandleProps}
-              >
-                <CardDragPreview count={selectedCards.length} />
-              </div>
-            )}
-          </Draggable>
+        <div className="fixed pointer-events-none z-50" style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+          <CardDragPreview count={selectedCards.length} />
         </div>
       );
     }
