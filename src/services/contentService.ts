@@ -1,4 +1,3 @@
-
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
 import contentMock from './mock/content-mock';
@@ -51,8 +50,19 @@ export const contentService = {
         contents = contents.filter(content => content.status === options.status);
       }
       
-      // Ordenar os conteúdos
-      contents.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+      // Ordenar os conteúdos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      });
       
       // Calcular total antes de paginar
       const total = contents.length;
@@ -96,8 +106,19 @@ export const contentService = {
         contents = contents.filter(content => content.status === options.status);
       }
       
-      // Ordenar os épicos
-      contents.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      // Ordenar os épicos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
       
       // Calcular total antes de paginar
       const total = contents.length;
@@ -211,6 +232,8 @@ export const contentService = {
   // Atualizar os índices de múltiplos conteúdos
   async updateContentIndices(contentUpdates: { id: string, index: number }[]): Promise<boolean> {
     try {
+      console.log("Updating content indices:", contentUpdates.map(u => `${u.id}: ${u.index}`).join(', '));
+      
       for (const update of contentUpdates) {
         const existingContent = await this.getContentById(update.id);
         if (existingContent) {

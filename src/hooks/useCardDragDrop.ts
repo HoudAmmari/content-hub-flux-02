@@ -125,7 +125,10 @@ export function useCardDragDrop({
       // Sort by current index
       columnCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
-      // Remove the dragged card from the array (it might be at a different position)
+      // Log current order for debugging
+      console.log("Before reordering:", columnCards.map(c => ({ id: c.id, index: c.index })));
+      
+      // Remove the dragged card from the array
       const filteredCards = columnCards.filter(card => card.id !== cardId);
       
       // Insert the dragged card at the new position
@@ -136,9 +139,9 @@ export function useCardDragDrop({
         index
       }));
       
-      await contentService.updateContentIndices(updates);
+      console.log("After reordering:", updates);
       
-      // Note: We're not calling onCardsUpdate() here to prevent a full refresh
+      await contentService.updateContentIndices(updates);
     } catch (error) {
       console.error("Erro ao reordenar cards:", error);
       throw error; // Let the caller handle the error
@@ -167,12 +170,6 @@ export function useCardDragDrop({
         return;
       }
       
-      // First update the card's status
-      // Important: Update the status in the database first
-      await contentService.updateContent(cardId, {
-        status: destinationStatus
-      });
-      
       // Get all cards in the destination column
       const { contents: destinationCards } = await contentService.getContentsByChannel(
         movedCard.channelId,
@@ -192,6 +189,9 @@ export function useCardDragDrop({
       // Sort by current index
       destinationCards.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       
+      // Log current order for debugging
+      console.log("Destination before:", destinationCards.map(c => ({ id: c.id, index: c.index })));
+      
       // Remove the moved card if it's already in the destination array (unlikely but possible)
       const filteredDestinationCards = destinationCards.filter(card => card.id !== cardId);
       
@@ -209,10 +209,15 @@ export function useCardDragDrop({
         index
       }));
       
-      // Update all indices
+      console.log("Destination after:", destinationUpdates);
+      
+      // First update all indices so the positions are correct
       await contentService.updateContentIndices(destinationUpdates);
       
-      // Note: We're not calling onCardsUpdate() to prevent a full refresh
+      // Then update the card's status in the database
+      await contentService.updateContent(cardId, {
+        status: destinationStatus
+      });
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       throw error; // Let the caller handle the error
@@ -242,14 +247,6 @@ export function useCardDragDrop({
       if (selectedCardObjects.length === 0) {
         console.error("No selected cards found");
         return;
-      }
-      
-      // First update the status of all selected cards
-      // Important: Update the statuses in the database first
-      for (const cardId of selectedCards) {
-        await contentService.updateContent(cardId, {
-          status: destinationStatus
-        });
       }
       
       // Get all cards in the destination column that are not selected
@@ -282,10 +279,17 @@ export function useCardDragDrop({
         index
       }));
       
-      // Then update all indices
+      console.log("Multi-card destination updates:", destinationUpdates);
+      
+      // First update all indices so the positions are correct
       await contentService.updateContentIndices(destinationUpdates);
       
-      // Note: We're not calling onCardsUpdate() to prevent a full refresh
+      // Then update the status of all selected cards
+      for (const cardId of selectedCards) {
+        await contentService.updateContent(cardId, {
+          status: destinationStatus
+        });
+      }
     } catch (error) {
       console.error("Erro ao mover múltiplos cards:", error);
       throw error; // Let the caller handle the error

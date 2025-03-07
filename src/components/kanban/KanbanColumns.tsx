@@ -1,4 +1,3 @@
-
 import { Channel, Content } from "@/models/types";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
@@ -84,6 +83,15 @@ export function KanbanColumns({
       
       // Combinar resultados
       const allCards = [...contents, ...epicResults.epics];
+      
+      // Sort by index for proper ordering within the column
+      allCards.sort((a, b) => {
+        // Use index as primary sort criterion
+        const indexA = a.index ?? 0;
+        const indexB = b.index ?? 0;
+        return indexA - indexB;
+      });
+      
       const totalItems = total + epicResults.total;
       
       return {
