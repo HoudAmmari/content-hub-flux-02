@@ -16,13 +16,15 @@ interface DeleteConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   isDeleting: boolean;
+  count?: number;
 }
 
 export function DeleteConfirmDialog({ 
   open, 
   onOpenChange, 
   onConfirm, 
-  isDeleting 
+  isDeleting,
+  count = 1
 }: DeleteConfirmDialogProps) {
   const { t } = useTranslation();
   
@@ -32,7 +34,10 @@ export function DeleteConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{t("general.delete")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t("content.deleteConfirm")}
+            {count === 1 
+              ? t("content.deleteConfirm")
+              : `Tem certeza que deseja excluir ${count} cards?`
+            }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -45,8 +50,14 @@ export function DeleteConfirmDialog({
               onConfirm();
             }}
             disabled={isDeleting}
+            className="bg-destructive hover:bg-destructive/90"
           >
-            {isDeleting ? t("general.loading") : t("general.delete")}
+            {isDeleting 
+              ? t("general.loading") 
+              : count === 1 
+                ? t("general.delete")
+                : `Excluir ${count} cards`
+            }
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

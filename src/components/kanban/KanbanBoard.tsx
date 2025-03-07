@@ -5,6 +5,8 @@ import { Content, Channel } from "@/models/types";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
 import { useEffect, useState, useRef } from "react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { Layers } from "lucide-react";
 
 interface KanbanBoardProps {
   selectedChannel: Channel | null;
@@ -29,6 +31,8 @@ export function KanbanBoard({
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStartPoint, setSelectionStartPoint] = useState({ x: 0, y: 0 });
   const [selectionEndPoint, setSelectionEndPoint] = useState({ x: 0, y: 0 });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
   const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
@@ -55,7 +59,7 @@ export function KanbanBoard({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' && selectedCards.length > 0) {
-        deleteSelectedCards();
+        setDeleteDialogOpen(true);
       }
     };
 
@@ -69,6 +73,7 @@ export function KanbanBoard({
   const deleteSelectedCards = async () => {
     if (selectedCards.length === 0) return;
     
+    setIsDeleting(true);
     try {
       for (const cardId of selectedCards) {
         await contentService.deleteContent(cardId);
@@ -87,6 +92,9 @@ export function KanbanBoard({
         description: "Não foi possível excluir os cards selecionados.",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -342,7 +350,24 @@ export function KanbanBoard({
             </div>
           ))}
         </div>
+
+        {selectedCards.length > 0 && (
+          <div 
+            className="fixed bottom-4 right-4 bg-background border rounded-lg p-3 shadow-lg flex items-center gap-2"
+          >
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <span>{selectedCards.length} cards selecionados</span>
+          </div>
+        )}
       </div>
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={deleteSelectedCards}
+        isDeleting={isDeleting}
+        count={selectedCards.length}
+      />
     </DragDropContext>
   );
 }

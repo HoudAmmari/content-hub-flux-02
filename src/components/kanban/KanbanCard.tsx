@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -40,7 +39,6 @@ export function KanbanCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // Register card position for selection box detection
   useEffect(() => {
     if (cardRef.current && registerCardPosition) {
       registerCardPosition(card.id, cardRef.current);
@@ -120,9 +118,11 @@ export function KanbanCard({
             {...provided.dragHandleProps}
             className={cn(
               "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
-              snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
+              snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
+              snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
-              isSelected && "ring-2 ring-primary ring-offset-2"
+              isSelected && "ring-2 ring-primary ring-offset-2",
+              snapshot.isDragging && isSelected && "invisible"
             )}
             onClick={handleCardClick}
           >
