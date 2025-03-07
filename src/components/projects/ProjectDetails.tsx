@@ -30,6 +30,7 @@ import { Project, Task } from "@/models/types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { projectService } from "@/services/projectService";
 import { useToast } from "@/hooks/use-toast";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface ProjectDetailsProps {
   project: Project & { isEditing?: boolean };
@@ -408,7 +409,7 @@ export function ProjectDetails({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
+                      <CalendarComponent
                         mode="single"
                         selected={editedDeadline}
                         onSelect={(date) => date && setEditedDeadline(date)}
@@ -550,7 +551,7 @@ export function ProjectDetails({
                                   !newTaskDueDate && "text-muted-foreground"
                                 )}
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                <Calendar className="mr-2 h-4 w-4" />
                                 {newTaskDueDate 
                                   ? format(newTaskDueDate, "PPP", { locale: ptBR }) 
                                   : "Selecione uma data"
@@ -558,7 +559,7 @@ export function ProjectDetails({
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
-                              <Calendar
+                              <CalendarComponent
                                 mode="single"
                                 selected={newTaskDueDate}
                                 onSelect={setNewTaskDueDate}
