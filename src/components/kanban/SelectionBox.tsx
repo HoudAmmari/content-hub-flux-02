@@ -23,7 +23,8 @@ export function SelectionBox({ isSelecting, startPoint, endPoint }: SelectionBox
     height: `${height}px`,
     background: 'rgba(59, 130, 246, 0.2)',
     border: '1px solid rgba(59, 130, 246, 0.5)',
-    zIndex: 10
+    pointerEvents: 'none',
+    zIndex: 50
   };
   
   return <div style={style} />;

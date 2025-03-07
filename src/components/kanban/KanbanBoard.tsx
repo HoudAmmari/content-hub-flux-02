@@ -46,7 +46,6 @@ export function KanbanBoard({
     isSelecting, 
     selectionStartPoint, 
     selectionEndPoint, 
-    selectionBoxRef,
     registerCardPosition, 
     handleMouseDown, 
     handleMouseMove, 
@@ -89,13 +88,11 @@ export function KanbanBoard({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <div ref={selectionBoxRef}>
-          <SelectionBox 
-            isSelecting={isSelecting}
-            startPoint={selectionStartPoint}
-            endPoint={selectionEndPoint}
-          />
-        </div>
+        <SelectionBox 
+          isSelecting={isSelecting}
+          startPoint={selectionStartPoint}
+          endPoint={selectionEndPoint}
+        />
         
         <KanbanColumns 
           selectedChannel={selectedChannel}

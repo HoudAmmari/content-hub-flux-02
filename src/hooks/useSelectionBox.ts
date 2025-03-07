@@ -10,7 +10,6 @@ export function useSelectionBox({ boardRef, onSelectionComplete }: UseSelectionB
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStartPoint, setSelectionStartPoint] = useState({ x: 0, y: 0 });
   const [selectionEndPoint, setSelectionEndPoint] = useState({ x: 0, y: 0 });
-  const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
 
   const registerCardPosition = (cardId: string, element: HTMLElement) => {
@@ -21,6 +20,7 @@ export function useSelectionBox({ boardRef, onSelectionComplete }: UseSelectionB
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't start selection if clicking on a card
     if ((e.target as HTMLElement).closest('.kanban-card')) {
       return;
     }
@@ -29,8 +29,8 @@ export function useSelectionBox({ boardRef, onSelectionComplete }: UseSelectionB
     
     if (boardRef.current) {
       const boardRect = boardRef.current.getBoundingClientRect();
-      const startX = e.clientX - boardRect.left;
-      const startY = e.clientY - boardRect.top;
+      const startX = e.clientX - boardRect.left + boardRef.current.scrollLeft;
+      const startY = e.clientY - boardRect.top + boardRef.current.scrollTop;
       
       setSelectionStartPoint({ x: startX, y: startY });
       setSelectionEndPoint({ x: startX, y: startY });
@@ -41,8 +41,8 @@ export function useSelectionBox({ boardRef, onSelectionComplete }: UseSelectionB
     if (!isSelecting || !boardRef.current) return;
     
     const boardRect = boardRef.current.getBoundingClientRect();
-    const currentX = e.clientX - boardRect.left;
-    const currentY = e.clientY - boardRect.top;
+    const currentX = e.clientX - boardRect.left + boardRef.current.scrollLeft;
+    const currentY = e.clientY - boardRect.top + boardRef.current.scrollTop;
     
     setSelectionEndPoint({ x: currentX, y: currentY });
   };
@@ -50,41 +50,55 @@ export function useSelectionBox({ boardRef, onSelectionComplete }: UseSelectionB
   const handleMouseUp = () => {
     if (!isSelecting) return;
     
-    setIsSelecting(false);
+    // Calculate selection box coordinates
+    const left = Math.min(selectionStartPoint.x, selectionEndPoint.x);
+    const top = Math.min(selectionStartPoint.y, selectionEndPoint.y);
+    const right = Math.max(selectionStartPoint.x, selectionEndPoint.x);
+    const bottom = Math.max(selectionStartPoint.y, selectionEndPoint.y);
     
-    if (selectionBoxRef.current) {
-      const selectionRect = selectionBoxRef.current.getBoundingClientRect();
+    // Only select if the selection box has a minimum size
+    const hasMinimumSize = 
+      Math.abs(selectionEndPoint.x - selectionStartPoint.x) > 5 && 
+      Math.abs(selectionEndPoint.y - selectionStartPoint.y) > 5;
+    
+    if (hasMinimumSize) {
+      const newSelectedCards: string[] = [];
       
-      // Only select if the selection box has a minimum size
-      const hasMinimumSize = 
-        Math.abs(selectionEndPoint.x - selectionStartPoint.x) > 5 && 
-        Math.abs(selectionEndPoint.y - selectionStartPoint.y) > 5;
-      
-      if (hasMinimumSize) {
-        const newSelectedCards: string[] = [];
-        cardPositionsRef.current.forEach((cardRect, cardId) => {
+      // Check each card to see if it intersects with the selection box
+      cardPositionsRef.current.forEach((cardRect, cardId) => {
+        if (boardRef.current) {
+          const boardRect = boardRef.current.getBoundingClientRect();
+          
+          // Convert card coordinates to be relative to the board
+          const cardLeft = cardRect.left - boardRect.left + boardRef.current.scrollLeft;
+          const cardTop = cardRect.top - boardRect.top + boardRef.current.scrollTop;
+          const cardRight = cardLeft + cardRect.width;
+          const cardBottom = cardTop + cardRect.height;
+          
+          // Check for intersection
           if (
-            cardRect.right >= selectionRect.left &&
-            cardRect.left <= selectionRect.right &&
-            cardRect.bottom >= selectionRect.top &&
-            cardRect.top <= selectionRect.bottom
+            cardRight >= left &&
+            cardLeft <= right &&
+            cardBottom >= top &&
+            cardTop <= bottom
           ) {
             newSelectedCards.push(cardId);
           }
-        });
-        
-        if (newSelectedCards.length > 0) {
-          onSelectionComplete(newSelectedCards);
         }
+      });
+      
+      if (newSelectedCards.length > 0) {
+        onSelectionComplete(newSelectedCards);
       }
     }
+    
+    setIsSelecting(false);
   };
 
   return {
     isSelecting,
     selectionStartPoint,
     selectionEndPoint,
-    selectionBoxRef,
     registerCardPosition,
     handleMouseDown,
     handleMouseMove,

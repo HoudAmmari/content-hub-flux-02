@@ -38,10 +38,24 @@ export function KanbanCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
+  // Register this card's position whenever it renders
   useEffect(() => {
     if (cardRef.current && registerCardPosition) {
       registerCardPosition(card.id, cardRef.current);
     }
+    
+    // Also register on scroll events
+    const handleScroll = () => {
+      if (cardRef.current && registerCardPosition) {
+        registerCardPosition(card.id, cardRef.current);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [card.id, registerCardPosition]);
 
   const handleSaveContent = async (content: Partial<Content>) => {
