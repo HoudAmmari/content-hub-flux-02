@@ -121,8 +121,7 @@ export function KanbanBoard({
     // If there's no destination, nothing to do
     if (!destination) {
       console.log("Sem destino, chamando handleDragEnd original");
-      handleDragEnd(result);
-      return;
+      return handleDragEnd(result);
     }
     
     // Extract status from droppableIds to know which columns to refresh
@@ -136,6 +135,15 @@ export function KanbanBoard({
     
     // Call the original handler
     handleDragEnd(result);
+    
+    // Update only the affected columns
+    if (sourceStatus !== destinationStatus) {
+      console.log("Atualizando colunas de origem e destino");
+      handleOptimisticUpdate(sourceStatus, destinationStatus);
+    } else {
+      console.log("Atualizando apenas a coluna de origem");
+      handleOptimisticUpdate(sourceStatus);
+    }
   };
 
   return (
