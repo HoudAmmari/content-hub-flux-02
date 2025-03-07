@@ -26,6 +26,30 @@ export function useCardSelection(cards: Content[], epics: Content[]) {
   };
 
   const handleCardSelect = (cardId: string, event: React.MouseEvent) => {
+    // Handle comma-separated list of IDs (from selection box)
+    if (cardId.includes(',')) {
+      const newSelectedIds = cardId.split(',');
+      
+      if (event.ctrlKey || event.metaKey) {
+        // Add to existing selection
+        setSelectedCards(prev => {
+          const combined = [...prev, ...newSelectedIds];
+          // Remove duplicates
+          return [...new Set(combined)];
+        });
+      } else {
+        // Replace selection
+        setSelectedCards(newSelectedIds);
+      }
+      
+      if (newSelectedIds.length > 0) {
+        setLastSelectedCard(newSelectedIds[newSelectedIds.length - 1]);
+      }
+      
+      return;
+    }
+    
+    // Normal single card selection
     if (event.ctrlKey || event.metaKey) {
       setSelectedCards(prev => 
         prev.includes(cardId) 

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Clock, Layers } from "lucide-react";
@@ -21,15 +21,31 @@ interface KanbanCardProps {
   onUpdate: () => void;
   isSelected?: boolean;
   onSelect?: (e: React.MouseEvent) => void;
+  registerCardPosition?: (cardId: string, element: HTMLElement) => void;
 }
 
-export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect }: KanbanCardProps) {
+export function KanbanCard({ 
+  card, 
+  index, 
+  onUpdate, 
+  isSelected = false, 
+  onSelect,
+  registerCardPosition
+}: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Register card position for selection box detection
+  useEffect(() => {
+    if (cardRef.current && registerCardPosition) {
+      registerCardPosition(card.id, cardRef.current);
+    }
+  }, [card.id, registerCardPosition]);
   
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -95,11 +111,15 @@ export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect
       <Draggable draggableId={card.id} index={index}>
         {(provided, snapshot) => (
           <Card 
-            ref={provided.innerRef}
+            ref={(element) => {
+              provided.innerRef(element);
+              // @ts-ignore - this doesn't cause runtime issues
+              cardRef.current = element;
+            }}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "cursor-pointer hover:shadow-md transition-all select-none",
+              "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
               snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
               card.isEpic && "border-l-4 border-l-purple-400",
               isSelected && "ring-2 ring-primary ring-offset-2"
