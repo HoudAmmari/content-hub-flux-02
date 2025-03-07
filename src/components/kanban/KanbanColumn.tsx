@@ -6,15 +6,20 @@ import { cn } from "@/lib/utils";
 import { Droppable, DroppableProps } from "react-beautiful-dnd";
 import { ChannelStatus } from "@/models/types";
 
-// Custom wrapper to handle defaultProps deprecation warning
+// Custom wrapper to correctly handle the defaultProps deprecation warning
+// using JavaScript default parameters instead
 function CustomDroppable({ 
   droppableId, 
-  type = "DEFAULT", 
   children, 
+  type = "DEFAULT", // Use default parameter instead of defaultProps
   ...rest 
 }: DroppableProps) {
   return (
-    <Droppable droppableId={droppableId} type={type} {...rest}>
+    <Droppable 
+      droppableId={droppableId} 
+      type={type} 
+      {...rest}
+    >
       {children}
     </Droppable>
   );
