@@ -11,28 +11,79 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ptBR } from "date-fns/locale";
+import { Project } from "@/models/types";
+import { projectService } from "@/services/projectService";
+import { useToast } from "@/hooks/use-toast";
 
 interface NewProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProjectCreated?: (project: Project) => void;
 }
 
-export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
+export function NewProjectDialog({ 
+  open, 
+  onOpenChange,
+  onProjectCreated 
+}: NewProjectDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Here you would save the project to your database
-    console.log("New project:", { title, description, deadline });
-    
-    // Reset form and close dialog
+  const { toast } = useToast();
+  
+  const resetForm = () => {
     setTitle("");
     setDescription("");
     setDeadline(undefined);
-    onOpenChange(false);
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!deadline) {
+      toast({
+        title: "Prazo obrigatório",
+        description: "Por favor, selecione um prazo para o projeto.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Create new project
+      const newProject = await projectService.createProject({
+        title,
+        description,
+        progress: 0,
+        status: "in_progress",
+        deadline: deadline.toISOString(),
+        tasks: 0,
+        completedTasks: 0
+      });
+      
+      // Notify parent component
+      if (onProjectCreated) {
+        onProjectCreated(newProject);
+      }
+      
+      // Reset form and close dialog
+      resetForm();
+      onOpenChange(false);
+      
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o projeto. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -107,10 +158,20 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           </div>
           
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+            <Button 
+              variant="outline" 
+              type="button" 
+              onClick={() => {
+                resetForm();
+                onOpenChange(false);
+              }}
+              disabled={isSubmitting}
+            >
               Cancelar
             </Button>
-            <Button type="submit">Criar Projeto</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Criando..." : "Criar Projeto"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

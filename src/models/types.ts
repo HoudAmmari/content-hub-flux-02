@@ -1,3 +1,4 @@
+
 // Tipos para os modelos de dados
 
 export interface Content {
@@ -26,6 +27,7 @@ export interface Project {
   completedTasks: number;
   createdAt?: string;
   updatedAt?: string;
+  isEditing?: boolean;
 }
 
 export interface Task {
