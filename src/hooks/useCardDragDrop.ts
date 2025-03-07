@@ -1,7 +1,9 @@
+
 import { DropResult } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
 import { Content } from "@/models/types";
+import { useCallback } from "react";
 
 interface UseCardDragDropProps {
   cards: Content[];
@@ -66,8 +68,7 @@ export function useCardDragDrop({
         }
       }
       
-      // Update the UI optimistically without triggering a full reload
-      // Just notify that the operation was successful
+      // Notify success without triggering a full reload
       toast({
         title: "Sucesso",
         description: "Cards atualizados com sucesso"
@@ -92,8 +93,6 @@ export function useCardDragDrop({
   ) => {
     console.log(`Reordering in same column ${columnId} from index ${sourceIndex} to ${destinationIndex}`);
     
-    // Instead of relying on the current cards array which might be outdated,
-    // fetch the card directly from the service
     try {
       const draggedCard = await contentService.getContentById(cardId);
       
@@ -138,17 +137,11 @@ export function useCardDragDrop({
       }));
       
       await contentService.updateContentIndices(updates);
-      toast({
-        title: "Sucesso",
-        description: "Ordem dos cards atualizada com sucesso."
-      });
+      
+      // Note: We're not calling onCardsUpdate() here to prevent a full refresh
     } catch (error) {
       console.error("Erro ao reordenar cards:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar a nova ordem.",
-        variant: "destructive"
-      });
+      throw error; // Let the caller handle the error
     }
   };
 
@@ -175,6 +168,7 @@ export function useCardDragDrop({
       }
       
       // First update the card's status
+      // Important: Update the status in the database first
       await contentService.updateContent(cardId, {
         status: destinationStatus
       });
@@ -218,17 +212,10 @@ export function useCardDragDrop({
       // Update all indices
       await contentService.updateContentIndices(destinationUpdates);
       
-      toast({
-        title: "Conteúdo atualizado",
-        description: "Status e posição atualizados com sucesso."
-      });
+      // Note: We're not calling onCardsUpdate() to prevent a full refresh
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status ou a posição.",
-        variant: "destructive"
-      });
+      throw error; // Let the caller handle the error
     }
   };
 
@@ -255,6 +242,14 @@ export function useCardDragDrop({
       if (selectedCardObjects.length === 0) {
         console.error("No selected cards found");
         return;
+      }
+      
+      // First update the status of all selected cards
+      // Important: Update the statuses in the database first
+      for (const cardId of selectedCards) {
+        await contentService.updateContent(cardId, {
+          status: destinationStatus
+        });
       }
       
       // Get all cards in the destination column that are not selected
@@ -287,27 +282,13 @@ export function useCardDragDrop({
         index
       }));
       
-      // First update the status of all selected cards
-      for (const cardId of selectedCards) {
-        await contentService.updateContent(cardId, {
-          status: destinationStatus
-        });
-      }
-      
       // Then update all indices
       await contentService.updateContentIndices(destinationUpdates);
       
-      toast({
-        title: "Sucesso",
-        description: `${selectedCards.length} cards movidos com sucesso.`
-      });
+      // Note: We're not calling onCardsUpdate() to prevent a full refresh
     } catch (error) {
       console.error("Erro ao mover múltiplos cards:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível mover os cards selecionados.",
-        variant: "destructive"
-      });
+      throw error; // Let the caller handle the error
     }
   };
 

@@ -14,11 +14,13 @@ interface KanbanColumnsProps {
   cards: Content[];
   epics: Content[];
   showEpics: boolean;
-  onCardsUpdate: () => void;
+  onCardsUpdate: (sourceStatus?: string, destinationStatus?: string) => void;
   selectedCards: string[];
   onCardSelect: (cardId: string, event: React.MouseEvent) => void;
   registerCardPosition: (cardId: string, element: HTMLElement) => void;
   pageSize: number;
+  columnsToRefresh?: Set<string>;
+  onColumnsRefreshed?: () => void;
 }
 
 interface ColumnState {
@@ -38,7 +40,9 @@ export function KanbanColumns({
   selectedCards,
   onCardSelect,
   registerCardPosition,
-  pageSize
+  pageSize,
+  columnsToRefresh,
+  onColumnsRefreshed
 }: KanbanColumnsProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -129,6 +133,49 @@ export function KanbanColumns({
     
     loadInitialData();
   }, [selectedChannel, showEpics, pageSize, loadColumnData]);
+  
+  // Effect to refresh specific columns when needed
+  useEffect(() => {
+    if (!columnsToRefresh || columnsToRefresh.size === 0 || !selectedChannel) return;
+    
+    const refreshSpecificColumns = async () => {
+      // Create a copy of the current state to update
+      const updatedColumnStates = { ...columnStates };
+      
+      // Refresh each column that needs updating
+      for (const status of columnsToRefresh) {
+        if (!columnStates[status]) continue;
+        
+        try {
+          const currentState = columnStates[status];
+          const result = await loadColumnData(
+            selectedChannel.id, 
+            status, 
+            currentState.page, 
+            showEpics
+          );
+          
+          updatedColumnStates[status] = {
+            ...currentState,
+            cards: result.cards,
+            hasMore: result.hasMore,
+            totalCount: result.total
+          };
+        } catch (error) {
+          console.error(`Erro ao atualizar coluna ${status}:`, error);
+        }
+      }
+      
+      setColumnStates(updatedColumnStates);
+      
+      // Notify parent that refresh is complete
+      if (onColumnsRefreshed) {
+        onColumnsRefreshed();
+      }
+    };
+    
+    refreshSpecificColumns();
+  }, [columnsToRefresh, selectedChannel, columnStates, showEpics, loadColumnData, onColumnsRefreshed]);
 
   // Atualiza uma coluna específica sem recarregar todas
   const refreshColumn = useCallback(async (status: string) => {
