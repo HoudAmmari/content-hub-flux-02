@@ -1,6 +1,7 @@
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface CardDragPreviewProps {
   count: number;
@@ -8,12 +9,14 @@ interface CardDragPreviewProps {
 }
 
 export function CardDragPreview({ count, className }: CardDragPreviewProps) {
+  const { t } = useTranslation();
+  
   return (
     <Card className={cn("cursor-grabbing shadow-md select-none bg-primary-foreground border-primary min-w-[220px]", className)}>
       <CardContent className="p-3 space-y-2">
         <div className="flex justify-between items-center">
           <h3 className="font-medium text-sm text-primary">
-            {count} cards selecionados
+            {count} {t("kanban.cardsSelected", { count })}
           </h3>
         </div>
       </CardContent>
