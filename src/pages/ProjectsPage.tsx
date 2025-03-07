@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Project } from "@/models/types";
 import { projectService } from "@/services/projectService";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -27,12 +27,12 @@ export function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  
-  // Fetch projects on component mount
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchProjects();
   }, []);
-  
+
   const fetchProjects = async () => {
     try {
       setIsLoading(true);
@@ -49,7 +49,7 @@ export function ProjectsPage() {
       setIsLoading(false);
     }
   };
-  
+
   const handleProjectCreated = (newProject: Project) => {
     setProjects(prev => [...prev, newProject]);
     toast({
@@ -57,13 +57,12 @@ export function ProjectsPage() {
       description: "O projeto foi criado com sucesso.",
     });
   };
-  
+
   const handleProjectUpdated = (updatedProject: Project) => {
     setProjects(prev => 
       prev.map(project => project.id === updatedProject.id ? updatedProject : project)
     );
     
-    // If the selected project was updated, update it
     if (selectedProject?.id === updatedProject.id) {
       setSelectedProject(updatedProject);
     }
@@ -73,7 +72,7 @@ export function ProjectsPage() {
       description: "O projeto foi atualizado com sucesso.",
     });
   };
-  
+
   const handleDeleteProject = async (projectId: string) => {
     try {
       await projectService.deleteProject(projectId);
@@ -96,7 +95,11 @@ export function ProjectsPage() {
       });
     }
   };
-  
+
+  const navigateToProjectDetails = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "in_progress":
@@ -111,7 +114,7 @@ export function ProjectsPage() {
         return null;
     }
   };
-  
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('pt-BR', { 
@@ -120,7 +123,7 @@ export function ProjectsPage() {
       year: 'numeric' 
     });
   };
-  
+
   const renderProjectCard = (project: Project) => (
     <Card key={project.id} className="hover:shadow-md transition-all">
       <CardHeader className="pb-2">
@@ -136,7 +139,7 @@ export function ProjectsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setSelectedProject(project)}>
+              <DropdownMenuItem onClick={() => navigateToProjectDetails(project.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Ver Detalhes</span>
               </DropdownMenuItem>
@@ -187,7 +190,7 @@ export function ProjectsPage() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setSelectedProject(project)}
+            onClick={() => navigateToProjectDetails(project.id)}
           >
             Ver Detalhes
           </Button>
@@ -195,7 +198,7 @@ export function ProjectsPage() {
       </CardFooter>
     </Card>
   );
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -236,14 +239,12 @@ export function ProjectsPage() {
         </TabsContent>
       </Tabs>
       
-      {/* New Project Dialog */}
       <NewProjectDialog 
         open={openNewProject} 
         onOpenChange={setOpenNewProject} 
         onProjectCreated={handleProjectCreated}
       />
       
-      {/* Project Details */}
       {selectedProject && (
         <ProjectDetails 
           project={selectedProject} 
