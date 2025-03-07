@@ -1,3 +1,4 @@
+
 // Tipos para os modelos de dados
 
 export interface Content {
@@ -5,8 +6,8 @@ export interface Content {
   title: string;
   description: string;
   status: string;
-  channelId: string;
-  projectId?: string; // New field to associate content with projects
+  channelId?: string; // Alterado para ser opcional
+  projectId?: string;
   tags: string[];
   content?: string;
   dueDate: string;
