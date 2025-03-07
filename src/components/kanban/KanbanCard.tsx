@@ -23,6 +23,7 @@ interface KanbanCardProps {
   onSelect?: (e: React.MouseEvent) => void;
   registerCardPosition?: (cardId: string, element: HTMLElement) => void;
   selectedCardsCount?: number;
+  isDraggingSelected?: boolean;
 }
 
 export function KanbanCard({ 
@@ -32,7 +33,8 @@ export function KanbanCard({
   isSelected = false, 
   onSelect,
   registerCardPosition,
-  selectedCardsCount = 0
+  selectedCardsCount = 0,
+  isDraggingSelected = false
 }: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -127,6 +129,11 @@ export function KanbanCard({
     );
   };
   
+  // Hide the card if it's selected and we're dragging selected cards
+  if (isSelected && isDraggingSelected) {
+    return null;
+  }
+  
   return (
     <>
       <Draggable draggableId={card.id} index={index}>
@@ -142,10 +149,8 @@ export function KanbanCard({
             className={cn(
               "cursor-pointer hover:shadow-md transition-all select-none kanban-card",
               snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
-              snapshot.isDragging && isSelected && "opacity-0",
               card.isEpic && "border-l-4 border-l-purple-400",
-              isSelected && "ring-2 ring-primary ring-offset-2",
-              (snapshot.isDragging && selectedCardsCount > 1) && "invisible"
+              isSelected && "ring-2 ring-primary ring-offset-2"
             )}
             onClick={handleCardClick}
           >

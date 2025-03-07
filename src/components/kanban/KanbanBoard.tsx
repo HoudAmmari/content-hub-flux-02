@@ -1,4 +1,3 @@
-
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCard } from "@/components/kanban/KanbanCard";
@@ -16,6 +15,7 @@ interface KanbanBoardProps {
   onCardsUpdate: () => void;
   selectedCards: string[];
   onCardSelect: (cardId: string, event: React.MouseEvent) => void;
+  setSelectedCards: (cards: string[]) => void;
 }
 
 export function KanbanBoard({ 
@@ -25,7 +25,8 @@ export function KanbanBoard({
   showEpics, 
   onCardsUpdate,
   selectedCards,
-  onCardSelect 
+  onCardSelect,
+  setSelectedCards
 }: KanbanBoardProps) {
   const { toast } = useToast();
   const [isSelecting, setIsSelecting] = useState(false);
@@ -33,6 +34,7 @@ export function KanbanBoard({
   const [selectionEndPoint, setSelectionEndPoint] = useState({ x: 0, y: 0 });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDraggingSelected, setIsDraggingSelected] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
   const selectionBoxRef = useRef<HTMLDivElement>(null);
   const cardPositionsRef = useRef<Map<string, DOMRect>>(new Map());
@@ -106,19 +108,21 @@ export function KanbanBoard({
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.kanban-card')) {
-      return;
+    if (!(e.target as HTMLElement).closest('.kanban-card')) {
+      setSelectedCards([]);
     }
     
-    setIsSelecting(true);
-    
-    if (boardRef.current) {
-      const boardRect = boardRef.current.getBoundingClientRect();
-      const startX = e.clientX - boardRect.left;
-      const startY = e.clientY - boardRect.top;
+    if (!(e.target as HTMLElement).closest('.kanban-card')) {
+      setIsSelecting(true);
       
-      setSelectionStartPoint({ x: startX, y: startY });
-      setSelectionEndPoint({ x: startX, y: startY });
+      if (boardRef.current) {
+        const boardRect = boardRef.current.getBoundingClientRect();
+        const startX = e.clientX - boardRect.left;
+        const startY = e.clientY - boardRect.top;
+        
+        setSelectionStartPoint({ x: startX, y: startY });
+        setSelectionEndPoint({ x: startX, y: startY });
+      }
     }
   };
 
@@ -176,7 +180,15 @@ export function KanbanBoard({
     };
   };
 
+  const handleDragStart = () => {
+    if (selectedCards.length > 1) {
+      setIsDraggingSelected(true);
+    }
+  };
+  
   const handleDragEnd = async (result: DropResult) => {
+    setIsDraggingSelected(false);
+    
     const { source, destination, draggableId } = result;
     
     if (!destination) {
@@ -315,7 +327,7 @@ export function KanbanBoard({
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
+    <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
       <div 
         ref={boardRef}
         className="overflow-x-auto max-w-full pb-4 relative"
@@ -345,6 +357,7 @@ export function KanbanBoard({
                     onSelect={(e) => onCardSelect(card.id, e)}
                     registerCardPosition={registerCardPosition}
                     selectedCardsCount={selectedCards.includes(card.id) ? selectedCards.length : 0}
+                    isDraggingSelected={isDraggingSelected}
                   />
                 ))}
               </KanbanColumn>

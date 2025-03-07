@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +26,7 @@ export function KanbanPage() {
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { selectedCards, handleCardSelect } = useCardSelection(cards, epics);
+  const { selectedCards, handleCardSelect, setSelectedCards } = useCardSelection(cards, epics);
 
   useEffect(() => {
     fetchChannels();
@@ -144,6 +143,7 @@ export function KanbanPage() {
                 onCardsUpdate={fetchContents}
                 selectedCards={selectedCards}
                 onCardSelect={handleCardSelect}
+                setSelectedCards={setSelectedCards}
               />
             )}
           </TabsContent>
