@@ -43,6 +43,11 @@ export function KanbanColumns({
     return selectedCards.includes(cardId);
   };
 
+  // Create a safe droppable ID from the status name
+  const createDroppableId = (statusName: string) => {
+    return `status-${statusName.replace(/\s+/g, '-').toLowerCase()}`;
+  };
+
   return (
     <div className="flex flex-row flex-nowrap gap-4 min-h-[70vh]">
       {selectedChannel?.statuses?.map((status) => (
@@ -50,7 +55,7 @@ export function KanbanColumns({
           <KanbanColumn
             status={status}
             title={status.name}
-            droppableId={status.name}
+            droppableId={createDroppableId(status.name)}
             type="CARD"
           >
             {getColumnCards(status.name).map((card, index) => (

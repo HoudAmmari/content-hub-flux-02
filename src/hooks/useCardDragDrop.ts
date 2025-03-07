@@ -19,6 +19,33 @@ export function useCardDragDrop({
 }: UseCardDragDropProps) {
   const { toast } = useToast();
 
+  // Helper function to convert droppableId back to status name
+  const getStatusFromDroppableId = (droppableId: string): string => {
+    // If the droppableId follows our format (status-name-with-dashes), extract the original name
+    if (droppableId.startsWith('status-')) {
+      // This is a simplification, in a real app you would map back to original status names
+      // For now, we'll assume the channel statuses are available in this component
+      const statusMatch = droppableId.match(/^status-(.+)$/);
+      if (statusMatch && statusMatch[1]) {
+        // Find the matching status from available statuses
+        const allCards = [...cards, ...epics];
+        const possibleStatuses = [...new Set(allCards.map(card => card.status))];
+        
+        // Find the status that matches this droppableId pattern
+        for (const status of possibleStatuses) {
+          const normalizedStatus = status.replace(/\s+/g, '-').toLowerCase();
+          if (normalizedStatus === statusMatch[1]) {
+            return status;
+          }
+        }
+      }
+    }
+    
+    // If we can't determine the original status, return the droppableId as is
+    // (fallback for backward compatibility)
+    return droppableId;
+  };
+
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
@@ -26,15 +53,19 @@ export function useCardDragDrop({
       return;
     }
 
+    // Convert droppableIds to actual status names
+    const sourceStatus = getStatusFromDroppableId(source.droppableId);
+    const destinationStatus = getStatusFromDroppableId(destination.droppableId);
+
     const isMultiCardMove = selectedCards.includes(draggableId) && selectedCards.length > 1;
     
     if (isMultiCardMove) {
-      await moveSelectedCards(source.droppableId, destination.droppableId, destination.index);
+      await moveSelectedCards(sourceStatus, destinationStatus, destination.index);
     } else {
-      if (source.droppableId === destination.droppableId) {
-        await handleSameColumnReorder(source.droppableId, source.index, destination.index, draggableId);
+      if (sourceStatus === destinationStatus) {
+        await handleSameColumnReorder(sourceStatus, source.index, destination.index, draggableId);
       } else {
-        await handleColumnChange(draggableId, source.droppableId, destination.droppableId, destination.index);
+        await handleColumnChange(draggableId, sourceStatus, destinationStatus, destination.index);
       }
     }
   };
