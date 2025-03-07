@@ -19,6 +19,7 @@ interface KanbanBoardProps {
   onCardsUpdate: () => void;
   selectedCards: string[];
   onCardSelect: (cardId: string, event: React.MouseEvent) => void;
+  pageSize: number;
 }
 
 export function KanbanBoard({ 
@@ -28,7 +29,8 @@ export function KanbanBoard({
   showEpics, 
   onCardsUpdate,
   selectedCards,
-  onCardSelect 
+  onCardSelect,
+  pageSize 
 }: KanbanBoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   
@@ -113,6 +115,7 @@ export function KanbanBoard({
           selectedCards={selectedCards}
           onCardSelect={onCardSelect}
           registerCardPosition={registerCardPosition}
+          pageSize={pageSize}
         />
 
         <SelectionIndicator selectedCount={selectedCards.length} />

@@ -118,7 +118,8 @@
     "in_progess": "In Progress",
     "pending": "Pending",
     "done": "Done",
-    "dragToMove": "Drag to move"
+    "dragToMove": "Drag to move",
+    "cardsPerPage": "Cards per page"
   },
   "content": {
     "newContent": "New Content",

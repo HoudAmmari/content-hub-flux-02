@@ -26,6 +26,7 @@ export function KanbanPage() {
   const [showEpics, setShowEpics] = useState(false);
   const [openNewContent, setOpenNewContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [pageSize, setPageSize] = useState<number>(10);
   
   const { selectedCards, handleCardSelect, clearSelectionOnOutsideClick } = useCardSelection(cards, epics);
 
@@ -54,6 +55,19 @@ export function KanbanPage() {
       document.removeEventListener('click', handleDocumentClick);
     };
   }, [clearSelectionOnOutsideClick]);
+
+  // Salvar o tamanho da página no localStorage
+  useEffect(() => {
+    const savedPageSize = localStorage.getItem('kanbanPageSize');
+    if (savedPageSize) {
+      setPageSize(parseInt(savedPageSize, 10));
+    }
+  }, []);
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    localStorage.setItem('kanbanPageSize', size.toString());
+  };
 
   const fetchChannels = async () => {
     try {
@@ -137,6 +151,8 @@ export function KanbanPage() {
         onShowEpicsChange={handleShowEpicsChange}
         epicCount={epics.length}
         onNewContent={() => setOpenNewContent(true)}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       <div className="mt-6">
@@ -160,6 +176,7 @@ export function KanbanPage() {
                 onCardsUpdate={fetchContents}
                 selectedCards={selectedCards}
                 onCardSelect={handleCardSelect}
+                pageSize={pageSize}
               />
             )}
           </TabsContent>
