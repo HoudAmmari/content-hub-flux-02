@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Content, Channel } from "@/models/types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
@@ -111,12 +110,12 @@ export function KanbanBoard({
   };
   
   // Customize DnD handler to track which columns need refreshing
-  const handleBoardDragEnd = (result: DropResult, provided: ResponderProvided) => {
-    const { source, destination, draggableId } = result;
+  const handleBoardDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
     
     // If there's no destination, nothing to do
     if (!destination) {
-      return handleDragEnd(result, provided);
+      return handleDragEnd(result);
     }
     
     // Extract status from droppableIds to know which columns to refresh
@@ -127,7 +126,7 @@ export function KanbanBoard({
       destination.droppableId.substring(7) : destination.droppableId;
     
     // Call the original handler but capture which columns to refresh
-    handleDragEnd(result, provided);
+    handleDragEnd(result);
     
     // Update only the affected columns
     if (sourceStatus !== destinationStatus) {
