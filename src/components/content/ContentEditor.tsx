@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Content } from "@/models/types";
+import { projectService } from "@/services/projectService";
 
 interface ContentEditorProps {
   card?: Content;
@@ -31,7 +33,8 @@ interface ContentEditorProps {
 export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   const [title, setTitle] = useState(card?.title || "");
   const [content, setContent] = useState(card?.content || "");
-  const [channel, setChannel] = useState(card?.channelId || "blog");
+  const [channel, setChannel] = useState(card?.channelId || "");
+  const [projectId, setProjectId] = useState(card?.projectId || "");
   const [status, setStatus] = useState(card?.status || "idea");
   const [dueDate, setDueDate] = useState<Date | undefined>(
     card?.dueDate ? new Date(card.dueDate) : undefined
@@ -39,6 +42,21 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   const [tags, setTags] = useState<string[]>(card?.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
+  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+
+  useEffect(() => {
+    // Carregar os projetos disponíveis
+    const loadProjects = async () => {
+      try {
+        const allProjects = await projectService.getAllProjects();
+        setProjects(allProjects.map(p => ({ id: p.id, title: p.title })));
+      } catch (error) {
+        console.error("Erro ao carregar projetos:", error);
+      }
+    };
+
+    loadProjects();
+  }, []);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -56,7 +74,8 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
       id: card?.id,
       title,
       content: content,
-      channel,
+      channelId: channel || undefined,
+      projectId: projectId || undefined,
       status,
       dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : "",
       tags,
@@ -81,6 +100,19 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
       textarea.focus();
       textarea.setSelectionRange(start + before.length + selectedText.length + after.length, start + before.length + selectedText.length + after.length);
     }, 0);
+  };
+
+  // Determinar se estamos no modo canal ou projeto
+  const isChannelMode = !!channel;
+  const isProjectMode = !!projectId;
+
+  // Alternar entre modos
+  const handleModeChange = (mode: "channel" | "project") => {
+    if (mode === "channel") {
+      setProjectId("");
+    } else {
+      setChannel("");
+    }
   };
 
   return (
@@ -202,21 +234,61 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
         )}
       </div>
 
+      {/* Seleção de modo: canal ou projeto */}
+      <div className="flex space-x-4">
+        <Button 
+          type="button" 
+          variant={isChannelMode ? "default" : "outline"}
+          onClick={() => handleModeChange("channel")}
+          className="w-1/2"
+        >
+          Vincular a um Canal
+        </Button>
+        <Button 
+          type="button" 
+          variant={isProjectMode ? "default" : "outline"}
+          onClick={() => handleModeChange("project")}
+          className="w-1/2"
+        >
+          Vincular a um Projeto
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="channel">Canal</Label>
-          <Select value={channel} onValueChange={setChannel}>
-            <SelectTrigger id="channel" className="mt-1">
-              <SelectValue placeholder="Selecione um canal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="blog">Blog</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
-              <SelectItem value="videos">Vídeos Curtos</SelectItem>
-              <SelectItem value="linkedin">LinkedIn</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {isChannelMode && (
+          <div>
+            <Label htmlFor="channel">Canal</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger id="channel" className="mt-1">
+                <SelectValue placeholder="Selecione um canal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blog">Blog</SelectItem>
+                <SelectItem value="youtube">YouTube</SelectItem>
+                <SelectItem value="videos">Vídeos Curtos</SelectItem>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {isProjectMode && (
+          <div>
+            <Label htmlFor="project">Projeto</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger id="project" className="mt-1">
+                <SelectValue placeholder="Selecione um projeto" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="status">Status</Label>

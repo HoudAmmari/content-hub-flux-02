@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ContentEditor } from "@/components/content/ContentEditor";
-import { Channel, Content } from "@/models/types";
+import { Channel, Content, Project } from "@/models/types";
 import { contentService } from "@/services/contentService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,19 +11,28 @@ interface NewContentDialogProps {
   onOpenChange: (open: boolean) => void;
   initialDate?: string;
   channel?: Channel | null;
+  project?: Project | null;
   onSuccess?: () => void;
 }
 
-export function NewContentDialog({ open, onOpenChange, initialDate, channel, onSuccess }: NewContentDialogProps) {
+export function NewContentDialog({ 
+  open, 
+  onOpenChange, 
+  initialDate, 
+  channel, 
+  project, 
+  onSuccess 
+}: NewContentDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const initialContent : Content = {
+  const initialContent: Content = {
     id: "",
     title: "",
     description: "",
     status: "",
     channelId: channel?.id || "",
+    projectId: project?.id || "",
     tags: [],
     dueDate: initialDate || "",
     isEpic: false,
@@ -56,11 +65,13 @@ export function NewContentDialog({ open, onOpenChange, initialDate, channel, onS
     }
   };
 
+  const dialogTitle = project ? "Novo Conteúdo do Projeto" : "Novo Conteúdo";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
-          <DialogTitle>Novo Conteúdo</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <ContentEditor 
           card={initialContent} 

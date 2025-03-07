@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -128,6 +129,7 @@ export function KanbanCard({
               snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
               snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
+              card.projectId && "border-r-4 border-r-blue-400", // Indicador visual para conteúdos vinculados a projetos
               isSelected && "ring-2 ring-primary ring-offset-2",
               isSelected && snapshot.isDragging ? "opacity-50" : ""
             )}

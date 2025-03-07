@@ -1,4 +1,3 @@
-
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
 import contentMock from './mock/content-mock';
@@ -144,6 +143,60 @@ export const contentService = {
     }
   },
 
+  // Obter conteúdos por projeto com paginação
+  async getContentsByProject(
+    projectId: string,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ contents: Content[], total: number }> {
+    try {
+      let contents = Array.from(db.values()).filter(content => content.projectId === projectId);
+      
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
+      
+      // Ordenar os conteúdos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      });
+      
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return { 
+        contents: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: row.isEpic || false
+        })),
+        total
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar conteúdos do projeto ${projectId}:`, error);
+      throw error;
+    }
+  },
+
   // Obter um conteúdo pelo ID
   async getContentById(id: string): Promise<Content | null> {
     try {
@@ -170,7 +223,11 @@ export const contentService = {
       
       // Obter o próximo índice para o status
       const contentsInStatus = Array.from(db.values()).filter(
-        item => item.status === content.status && item.channelId === content.channelId
+        item => item.status === content.status && 
+        (
+          (content.channelId && item.channelId === content.channelId) || 
+          (content.projectId && item.projectId === content.projectId)
+        )
       );
       const nextIndex = contentsInStatus.length;
       
@@ -180,6 +237,7 @@ export const contentService = {
         description: content.description || '',
         status: content.status,
         channelId: content.channelId,
+        projectId: content.projectId,
         tags: content.tags || [],
         dueDate: content.dueDate || now,
         isEpic: content.isEpic || false,
