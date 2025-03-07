@@ -14,6 +14,7 @@ interface KanbanHeaderProps {
   onNewContent: () => void;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
+  isLoading?: boolean;
 }
 
 export function KanbanHeader({ 
@@ -23,7 +24,8 @@ export function KanbanHeader({
   epicCount,
   onNewContent,
   pageSize,
-  onPageSizeChange 
+  onPageSizeChange,
+  isLoading = false
 }: KanbanHeaderProps) {
   const { t } = useTranslation();
 
@@ -40,7 +42,8 @@ export function KanbanHeader({
         <div className="flex items-center gap-4">
           <PageSizeSelector 
             pageSize={pageSize} 
-            onPageSizeChange={onPageSizeChange} 
+            onPageSizeChange={onPageSizeChange}
+            isLoading={isLoading} 
           />
           
           {epicCount > 0 && (
@@ -54,7 +57,7 @@ export function KanbanHeader({
             </div>
           )}
 
-          <Button onClick={onNewContent} className="gap-2">
+          <Button onClick={onNewContent} className="gap-2" disabled={isLoading}>
             <Plus size={16} />
             {t("content.new")}
           </Button>

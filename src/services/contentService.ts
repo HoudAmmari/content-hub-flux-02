@@ -1,3 +1,4 @@
+
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
 import contentMock from './mock/content-mock';
@@ -28,8 +29,16 @@ export const contentService = {
     }
   },
 
-  // Obter conteúdos por canal
-  async getContentsByChannel(channel: string, includeEpics: boolean = false): Promise<Content[]> {
+  // Obter conteúdos por canal com paginação
+  async getContentsByChannel(
+    channel: string, 
+    includeEpics: boolean = false,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ contents: Content[], total: number }> {
     try {
       let contents = Array.from(db.values()).filter(content => content.channelId === channel);
       
@@ -37,29 +46,76 @@ export const contentService = {
         contents = contents.filter(content => !content.isEpic);
       }
       
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
+      
+      // Ordenar os conteúdos
       contents.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
       
-      return contents.map(row => ({
-        ...row,
-        tags: row.tags || [],
-        isEpic: row.isEpic || false
-      }));
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return { 
+        contents: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: row.isEpic || false
+        })),
+        total
+      };
     } catch (error) {
       console.error(`Erro ao buscar conteúdos do canal ${channel}:`, error);
       throw error;
     }
   },
 
-  // Obter épicos por canal
-  async getEpicsByChannel(channel: string): Promise<Content[]> {
+  // Obter épicos por canal com paginação
+  async getEpicsByChannel(
+    channel: string,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ epics: Content[], total: number }> {
     try {
-      const contents = Array.from(db.values()).filter(content => content.channelId === channel && content.isEpic);
+      let contents = Array.from(db.values()).filter(
+        content => content.channelId === channel && content.isEpic
+      );
+      
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
+      
+      // Ordenar os épicos
       contents.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-      return contents.map(row => ({
-        ...row,
-        tags: row.tags || [],
-        isEpic: true
-      }));
+      
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return {
+        epics: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: true
+        })),
+        total
+      };
     } catch (error) {
       console.error(`Erro ao buscar épicos do canal ${channel}:`, error);
       throw error;

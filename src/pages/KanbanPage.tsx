@@ -88,8 +88,11 @@ export function KanbanPage() {
     try {
       if (!selectedChannel) return;
 
-      const contentsData = await contentService.getContentsByChannel(
-        selectedChannel.id
+      // Buscar conteúdos com a primeira página
+      const { contents: contentsData } = await contentService.getContentsByChannel(
+        selectedChannel.id,
+        false,
+        { page: 0, pageSize }
       );
       
       const sortedContents = contentsData.sort((a, b) => {
@@ -102,8 +105,9 @@ export function KanbanPage() {
       setCards(sortedContents);
 
       if (showEpics) {
-        const epicsData = await contentService.getEpicsByChannel(
-          selectedChannel.id
+        const { epics: epicsData } = await contentService.getEpicsByChannel(
+          selectedChannel.id,
+          { page: 0, pageSize }
         );
         
         const sortedEpics = epicsData.sort((a, b) => {
