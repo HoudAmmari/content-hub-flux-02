@@ -27,7 +27,7 @@ export function ProjectInfoPanel({ project, onProjectUpdated }: ProjectInfoPanel
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState(project.title);
   const [description, setDescription] = useState(project.description);
-  const [status, setStatus] = useState(project.status);
+  const [status, setStatus] = useState<"in_progress" | "completed" | "paused" | "canceled">(project.status);
   const [deadline, setDeadline] = useState<Date>(new Date(project.deadline));
 
   const handleSave = async () => {
@@ -45,7 +45,7 @@ export function ProjectInfoPanel({ project, onProjectUpdated }: ProjectInfoPanel
       const updatedProject = await projectService.updateProject(project.id, {
         title,
         description,
-        status: status as "in_progress" | "completed" | "paused" | "canceled",
+        status,
         deadline: deadline.toISOString(),
       });
 
@@ -130,7 +130,10 @@ export function ProjectInfoPanel({ project, onProjectUpdated }: ProjectInfoPanel
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             {isEditing ? (
-              <Select value={status} onValueChange={(value) => setStatus(value)}>
+              <Select 
+                value={status} 
+                onValueChange={(value: "in_progress" | "completed" | "paused" | "canceled") => setStatus(value)}
+              >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
@@ -200,6 +203,5 @@ export function ProjectInfoPanel({ project, onProjectUpdated }: ProjectInfoPanel
           </div>
         </div>
       </CardContent>
-    </Card>
   );
 }
