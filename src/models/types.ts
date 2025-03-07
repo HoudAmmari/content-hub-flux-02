@@ -1,4 +1,5 @@
-// Tipos para os modelos de dados
+
+// Types for data models
 
 export interface Content {
   id: string;
