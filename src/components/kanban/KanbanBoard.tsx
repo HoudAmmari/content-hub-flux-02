@@ -1,7 +1,7 @@
+
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Content, Channel } from "@/models/types";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
-import { useCardSelection } from "@/hooks/useCardSelection";
 import { SelectionBox } from "./SelectionBox";
 import { SelectionIndicator } from "./SelectionIndicator";
 import { useSelectionBox } from "@/hooks/useSelectionBox";
@@ -9,7 +9,7 @@ import { useCardDeletion } from "@/hooks/useCardDeletion";
 import { useCardDragDrop } from "@/hooks/useCardDragDrop";
 import { DragPreviewWrapper } from "./DragPreviewWrapper";
 import { KanbanColumns } from "./KanbanColumns";
-import { DropResult, ResponderProvided } from "react-beautiful-dnd";
+import { DropResult } from "react-beautiful-dnd";
 
 interface KanbanBoardProps {
   selectedChannel: Channel | null;
@@ -42,22 +42,26 @@ export function KanbanBoard({
   
   // Function to refresh specific columns instead of the entire board
   const refreshColumns = useCallback((columnIds: string[]) => {
+    console.log("Marcando colunas para atualização:", columnIds);
     setColumnsToRefresh(new Set(columnIds));
   }, []);
   
   // Clear the refresh flag once processed
   const clearColumnsToRefresh = useCallback(() => {
+    console.log("Limpando flag de atualização de colunas");
     setColumnsToRefresh(new Set());
   }, []);
   
   // Use a more optimistic approach for drag and drop with a callback to avoid full refresh
   const handleOptimisticUpdate = useCallback((sourceStatus?: string, destinationStatus?: string) => {
+    console.log(`Atualização otimista: source=${sourceStatus}, destination=${destinationStatus}`);
     if (sourceStatus && destinationStatus) {
-      // If we know which columns changed, just refresh those
+      // Se sabemos quais colunas mudaram, apenas atualizamos essas
       refreshColumns([sourceStatus, destinationStatus]);
+    } else if (sourceStatus) {
+      // Se apenas uma coluna foi modificada
+      refreshColumns([sourceStatus]);
     }
-    // Only log the update instead of triggering a full refresh
-    console.log("Card positions updated optimistically");
   }, [refreshColumns]);
   
   const { handleDragEnd } = useCardDragDrop({ 
@@ -111,10 +115,12 @@ export function KanbanBoard({
   
   // Customize DnD handler to track which columns need refreshing
   const handleBoardDragEnd = (result: DropResult) => {
+    console.log("handleBoardDragEnd chamado com:", result);
     const { source, destination } = result;
     
     // If there's no destination, nothing to do
     if (!destination) {
+      console.log("Sem destino, chamando handleDragEnd original");
       return handleDragEnd(result);
     }
     
@@ -125,13 +131,17 @@ export function KanbanBoard({
     const destinationStatus = destination.droppableId.startsWith('status-') ? 
       destination.droppableId.substring(7) : destination.droppableId;
     
-    // Call the original handler but capture which columns to refresh
+    console.log(`Processando drag de ${sourceStatus} para ${destinationStatus}`);
+    
+    // Call the original handler
     handleDragEnd(result);
     
     // Update only the affected columns
     if (sourceStatus !== destinationStatus) {
+      console.log("Atualizando colunas de origem e destino");
       handleOptimisticUpdate(sourceStatus, destinationStatus);
     } else {
+      console.log("Atualizando apenas a coluna de origem");
       handleOptimisticUpdate(sourceStatus);
     }
   };

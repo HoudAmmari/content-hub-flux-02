@@ -1,3 +1,4 @@
+
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
 import contentMock from './mock/content-mock';
@@ -182,7 +183,7 @@ export const contentService = {
         tags: content.tags || [],
         dueDate: content.dueDate || now,
         isEpic: content.isEpic || false,
-        index: content.index || nextIndex,
+        index: content.index ?? nextIndex,
         createdAt: now,
         updatedAt: now
       };
@@ -203,15 +204,17 @@ export const contentService = {
       }
 
       const now = new Date().toISOString();
+      
+      // Garantir que todos os campos estejam corretamente mapeados
       const updates = {
         title: content.title ?? existingContent.title,
         description: content.description ?? existingContent.description,
         status: content.status ?? existingContent.status,
-        channel: content.channelId ?? existingContent.channel,
+        channelId: content.channelId ?? existingContent.channelId,
         tags: content.tags ?? existingContent.tags,
         dueDate: content.dueDate ?? existingContent.dueDate,
         isEpic: content.isEpic ?? existingContent.isEpic,
-        index: content.index ?? existingContent.index,
+        index: content.index !== undefined ? content.index : existingContent.index,
         updatedAt: now
       };
 
@@ -220,6 +223,7 @@ export const contentService = {
         ...updates
       };
 
+      console.log(`Atualizando conteúdo ${id} com índice: ${updatedContent.index}`);
       db.set(id, updatedContent);
 
       return updatedContent;
@@ -232,14 +236,28 @@ export const contentService = {
   // Atualizar os índices de múltiplos conteúdos
   async updateContentIndices(contentUpdates: { id: string, index: number }[]): Promise<boolean> {
     try {
-      console.log("Updating content indices:", contentUpdates.map(u => `${u.id}: ${u.index}`).join(', '));
+      console.log("Atualizando índices de conteúdos:", contentUpdates.map(u => `${u.id}: ${u.index}`).join(', '));
       
       for (const update of contentUpdates) {
-        const existingContent = await this.getContentById(update.id);
+        const existingContent = db.get(update.id);
         if (existingContent) {
-          await this.updateContent(update.id, { index: update.index });
+          // Atualizar diretamente no banco de dados em memória para evitar leitura extra
+          existingContent.index = update.index;
+          existingContent.updatedAt = new Date().toISOString();
+          db.set(update.id, existingContent);
+          
+          console.log(`Índice do card ${existingContent.id} (${existingContent.title}) atualizado para ${update.index}`);
+        } else {
+          console.warn(`Card ${update.id} não encontrado para atualização de índice`);
         }
       }
+      
+      // Verificar se os índices foram atualizados corretamente
+      for (const update of contentUpdates) {
+        const content = db.get(update.id);
+        console.log(`Verificação: Card ${update.id} - índice atual: ${content?.index}`);
+      }
+      
       return true;
     } catch (error) {
       console.error('Erro ao atualizar índices:', error);
