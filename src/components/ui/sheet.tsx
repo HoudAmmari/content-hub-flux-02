@@ -25,6 +25,12 @@ const SheetOverlay = React.forwardRef<
     )}
     {...props}
     ref={ref}
+    onClick={(e) => {
+      e.stopPropagation();
+      if (props.onClick) {
+        props.onClick(e);
+      }
+    }}
   />
 ))
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
