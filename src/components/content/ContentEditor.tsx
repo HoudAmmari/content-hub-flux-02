@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,18 +21,32 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Content } from "@/models/types";
+import { Content, Channel, Project } from "@/models/types";
+import { projectService } from "@/services/projectService";
+import { channelService } from "@/services/channelService";
 
 interface ContentEditorProps {
   card?: Content;
   onSave: (content: Partial<Content>) => void;
   onCancel?: () => void;
+  isContextLocked?: boolean;
+  lockedContext?: {
+    channel?: Channel | null;
+    project?: Project | null;
+  };
 }
 
-export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
+export function ContentEditor({ 
+  card, 
+  onSave, 
+  onCancel,
+  isContextLocked = false,
+  lockedContext
+}: ContentEditorProps) {
   const [title, setTitle] = useState(card?.title || "");
   const [content, setContent] = useState(card?.content || "");
-  const [channel, setChannel] = useState(card?.channelId || "blog");
+  const [channelId, setChannelId] = useState(card?.channelId || lockedContext?.channel?.id || "");
+  const [projectId, setProjectId] = useState(card?.projectId || lockedContext?.project?.id || "");
   const [status, setStatus] = useState(card?.status || "idea");
   const [dueDate, setDueDate] = useState<Date | undefined>(
     card?.dueDate ? new Date(card.dueDate) : undefined
@@ -39,6 +54,53 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   const [tags, setTags] = useState<string[]>(card?.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
+  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+  const [mode, setMode] = useState<"channel" | "project" | "none">("none");
+
+  useEffect(() => {
+    if (isContextLocked) {
+      if (lockedContext?.channel) {
+        setMode("channel");
+        setChannelId(lockedContext.channel.id);
+      } else if (lockedContext?.project) {
+        setMode("project");
+        setProjectId(lockedContext.project.id);
+      }
+    } else {
+      if (card?.channelId) {
+        setMode("channel");
+      } else if (card?.projectId) {
+        setMode("project");
+      }
+    }
+
+    const loadProjects = async () => {
+      try {
+        const allProjects = await projectService.getAllProjects();
+        setProjects(allProjects.map(p => ({ id: p.id, title: p.title })));
+      } catch (error) {
+        console.error("Erro ao carregar projetos:", error);
+      }
+    };
+
+    const loadChannels = async () => {
+      try {
+        const allChannels = await channelService.getAllChannels();
+        setChannels(allChannels.map(c => ({ id: c.id, name: c.name })));
+      } catch (error) {
+        console.error("Erro ao carregar canais:", error);
+      }
+    };
+
+    if (!isContextLocked || !lockedContext?.channel) {
+      loadChannels();
+    }
+    
+    if (!isContextLocked || !lockedContext?.project) {
+      loadProjects();
+    }
+  }, [card, isContextLocked, lockedContext]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -52,15 +114,22 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
   };
 
   const handleSave = () => {
-    const contentToSave = {
+    const contentToSave: Partial<Content> = {
       id: card?.id,
       title,
       content: content,
-      channel,
       status,
-      dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : "",
       tags,
+      dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : "",
     };
+
+    if (mode === "channel" && channelId) {
+      contentToSave.channelId = channelId;
+    }
+    
+    if (mode === "project" && projectId) {
+      contentToSave.projectId = projectId;
+    }
 
     onSave(contentToSave);
   };
@@ -76,11 +145,41 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
     
     setContent(newText);
     
-    // Set cursor position after the inserted text
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length + selectedText.length + after.length, start + before.length + selectedText.length + after.length);
     }, 0);
+  };
+
+  const renderModeSelector = () => {
+    if (isContextLocked) return null;
+    
+    return (
+      <div className="flex space-x-4 mb-4">
+        <Button 
+          type="button" 
+          variant={mode === "channel" ? "default" : "outline"}
+          onClick={() => {
+            setMode("channel");
+            setProjectId("");
+          }}
+          className="w-1/2"
+        >
+          Vincular a um Canal
+        </Button>
+        <Button 
+          type="button" 
+          variant={mode === "project" ? "default" : "outline"}
+          onClick={() => {
+            setMode("project");
+            setChannelId("");
+          }}
+          className="w-1/2"
+        >
+          Vincular a um Projeto
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -202,21 +301,64 @@ export function ContentEditor({ card, onSave, onCancel }: ContentEditorProps) {
         )}
       </div>
 
+      {renderModeSelector()}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="channel">Canal</Label>
-          <Select value={channel} onValueChange={setChannel}>
-            <SelectTrigger id="channel" className="mt-1">
-              <SelectValue placeholder="Selecione um canal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="blog">Blog</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
-              <SelectItem value="videos">Vídeos Curtos</SelectItem>
-              <SelectItem value="linkedin">LinkedIn</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {(mode === "channel" || (isContextLocked && !!lockedContext?.channel)) && (
+          <div>
+            <Label htmlFor="channel">Canal</Label>
+            <Select 
+              value={channelId} 
+              onValueChange={setChannelId}
+              disabled={isContextLocked && !!lockedContext?.channel}
+            >
+              <SelectTrigger id="channel" className="mt-1">
+                <SelectValue placeholder="Selecione um canal" />
+              </SelectTrigger>
+              <SelectContent>
+                {isContextLocked && lockedContext?.channel ? (
+                  <SelectItem value={lockedContext.channel.id}>
+                    {lockedContext.channel.name}
+                  </SelectItem>
+                ) : (
+                  channels.map(channel => (
+                    <SelectItem key={channel.id} value={channel.id}>
+                      {channel.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {(mode === "project" || (isContextLocked && !!lockedContext?.project)) && (
+          <div>
+            <Label htmlFor="project">Projeto</Label>
+            <Select 
+              value={projectId} 
+              onValueChange={setProjectId}
+              disabled={isContextLocked && !!lockedContext?.project}
+            >
+              <SelectTrigger id="project" className="mt-1">
+                <SelectValue placeholder="Selecione um projeto" />
+              </SelectTrigger>
+              <SelectContent>
+                {isContextLocked && lockedContext?.project ? (
+                  <SelectItem value={lockedContext.project.id}>
+                    {lockedContext.project.title}
+                  </SelectItem>
+                ) : (
+                  projects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.title}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="status">Status</Label>

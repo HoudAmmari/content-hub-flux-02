@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import { useIsMobile } from "./hooks/use-mobile";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { KanbanPage } from "./pages/KanbanPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,7 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
                     <Route path="/newsletter" element={<Newsletter />} />
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/channels/manage" element={<ChannelManager />} />

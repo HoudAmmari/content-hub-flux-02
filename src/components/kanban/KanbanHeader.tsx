@@ -1,9 +1,10 @@
 
-import { useTranslation } from "react-i18next";
+import { Channel } from "@/models/types";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Channel } from "@/models/types";
+import { useTranslation } from "react-i18next";
 import { EpicToggle } from "./EpicToggle";
+import { PageSizeSelector } from "./PageSizeSelector";
 
 interface KanbanHeaderProps {
   selectedChannel: Channel | null;
@@ -11,6 +12,9 @@ interface KanbanHeaderProps {
   onShowEpicsChange: (show: boolean) => void;
   epicCount: number;
   onNewContent: () => void;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
+  isLoading?: boolean;
 }
 
 export function KanbanHeader({ 
@@ -18,28 +22,46 @@ export function KanbanHeader({
   showEpics, 
   onShowEpicsChange, 
   epicCount,
-  onNewContent 
+  onNewContent,
+  pageSize,
+  onPageSizeChange,
+  isLoading = false
 }: KanbanHeaderProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <h1 className="text-2xl font-semibold">{selectedChannel?.name || t("kanban.board")}</h1>
-      </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          {selectedChannel ? (
+            <h2 className="text-2xl font-semibold">{selectedChannel.name}</h2>
+          ) : (
+            <h2 className="text-2xl font-semibold">{t("kanban.selectChannel")}</h2>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <PageSizeSelector 
+            pageSize={pageSize} 
+            onPageSizeChange={onPageSizeChange}
+            isLoading={isLoading} 
+          />
+          
+          {epicCount > 0 && (
+            <div className="flex items-center gap-2">
+              <EpicToggle
+                showEpics={showEpics}
+                onShowEpicsChange={onShowEpicsChange}
+                epicCount={epicCount}
+                channelName={selectedChannel?.name}
+              />
+            </div>
+          )}
 
-      <div className="flex gap-4 items-center">
-        <EpicToggle 
-          showEpics={showEpics} 
-          onShowEpicsChange={onShowEpicsChange}
-          epicCount={epicCount}
-          channelName={selectedChannel?.name}
-        />
-
-        <Button onClick={onNewContent} className="gap-1">
-          <Plus className="h-4 w-4" />
-          <span>{t("content.newContent")}</span>
-        </Button>
+          <Button onClick={onNewContent} className="gap-2" disabled={isLoading}>
+            <Plus size={16} />
+            {t("content.new")}
+          </Button>
+        </div>
       </div>
     </div>
   );

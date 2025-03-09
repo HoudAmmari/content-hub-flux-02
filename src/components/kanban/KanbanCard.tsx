@@ -1,8 +1,6 @@
 
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Clock, Layers } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ContentEditor } from "@/components/content/ContentEditor";
 import { cn } from "@/lib/utils";
@@ -10,10 +8,10 @@ import { Draggable } from "react-beautiful-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { Content } from "@/models/types";
 import { contentService } from "@/services/contentService";
-import { CardBadges } from "./CardBadges";
-import { CardMenu } from "./CardMenu";
 import { CardDetailView } from "./CardDetailView";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { CardContentArea } from "./CardContent";
+import { useTranslation } from "react-i18next";
 
 interface KanbanCardProps {
   card: Content;
@@ -21,23 +19,44 @@ interface KanbanCardProps {
   onUpdate: () => void;
   isSelected?: boolean;
   onSelect?: (e: React.MouseEvent) => void;
+  registerCardPosition?: (cardId: string, element: HTMLElement) => void;
 }
 
-export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect }: KanbanCardProps) {
+export function KanbanCard({ 
+  card, 
+  index, 
+  onUpdate, 
+  isSelected = false, 
+  onSelect,
+  registerCardPosition
+}: KanbanCardProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { 
-      day: '2-digit', 
-      month: '2-digit'
-    });
-  };
+  // Register this card's position whenever it renders
+  useEffect(() => {
+    if (cardRef.current && registerCardPosition) {
+      registerCardPosition(card.id, cardRef.current);
+    }
+    
+    // Also register on scroll events
+    const handleScroll = () => {
+      if (cardRef.current && registerCardPosition) {
+        registerCardPosition(card.id, cardRef.current);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [card.id, registerCardPosition]);
 
   const handleSaveContent = async (content: Partial<Content>) => {
     try {
@@ -90,50 +109,37 @@ export function KanbanCard({ card, index, onUpdate, isSelected = false, onSelect
     }
   };
   
+  // Generate a safe draggableId
+  const draggableId = `card-${card.id}`;
+  
   return (
     <>
-      <Draggable draggableId={card.id} index={index}>
+      <Draggable draggableId={draggableId} index={index}>
         {(provided, snapshot) => (
           <Card 
-            ref={provided.innerRef}
+            ref={(element) => {
+              provided.innerRef(element);
+              // @ts-ignore - this doesn't cause runtime issues
+              cardRef.current = element;
+            }}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "cursor-pointer hover:shadow-md transition-all select-none",
-              snapshot.isDragging && "rotate-2 scale-105 shadow-lg",
+              "cursor-pointer hover:shadow-md transition-all select-none kanban-card mb-2",
+              snapshot.isDragging && !isSelected && "rotate-2 scale-105 shadow-lg",
+              snapshot.isDragging && isSelected && "opacity-50",
               card.isEpic && "border-l-4 border-l-purple-400",
-              isSelected && "ring-2 ring-primary ring-offset-2"
+              card.projectId && "border-r-4 border-r-blue-400", // Indicador visual para conteúdos vinculados a projetos
+              isSelected && "ring-2 ring-primary ring-offset-2",
+              isSelected && snapshot.isDragging ? "opacity-50" : ""
             )}
             onClick={handleCardClick}
           >
-            <CardContent className="p-3 space-y-2">
-              <div className="flex justify-between items-start">
-                <h3 className={cn(
-                  "font-medium text-sm line-clamp-2",
-                  card.isEpic && "flex items-center gap-1"
-                )}>
-                  {card.isEpic && <Layers className="h-3.5 w-3.5 text-purple-500" />}
-                  {card.title}
-                </h3>
-                <CardMenu 
-                  onEdit={() => setIsEditing(true)}
-                  onDelete={() => setDeleteDialogOpen(true)}
-                />
-              </div>
-              
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {card.description.replace(/[#*`\\[\]\-_]/g, '')}
-              </p>
-              
-              <CardBadges tags={card.tags} />
-            </CardContent>
-            
-            <CardFooter className="p-3 pt-0 flex justify-between items-center">
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Clock className="mr-1 h-3 w-3" />
-                {formatDate(card.dueDate)}
-              </div>
-            </CardFooter>
+            <CardContentArea 
+              card={card}
+              onEdit={() => setIsEditing(true)}
+              onDelete={() => setDeleteDialogOpen(true)}
+            />
           </Card>
         )}
       </Draggable>

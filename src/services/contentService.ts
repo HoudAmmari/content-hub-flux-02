@@ -28,8 +28,16 @@ export const contentService = {
     }
   },
 
-  // Obter conteúdos por canal
-  async getContentsByChannel(channel: string, includeEpics: boolean = false): Promise<Content[]> {
+  // Obter conteúdos por canal com paginação
+  async getContentsByChannel(
+    channel: string, 
+    includeEpics: boolean = false,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ contents: Content[], total: number }> {
     try {
       let contents = Array.from(db.values()).filter(content => content.channelId === channel);
       
@@ -37,31 +45,154 @@ export const contentService = {
         contents = contents.filter(content => !content.isEpic);
       }
       
-      contents.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
       
-      return contents.map(row => ({
-        ...row,
-        tags: row.tags || [],
-        isEpic: row.isEpic || false
-      }));
+      // Ordenar os conteúdos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      });
+      
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return { 
+        contents: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: row.isEpic || false
+        })),
+        total
+      };
     } catch (error) {
       console.error(`Erro ao buscar conteúdos do canal ${channel}:`, error);
       throw error;
     }
   },
 
-  // Obter épicos por canal
-  async getEpicsByChannel(channel: string): Promise<Content[]> {
+  // Obter épicos por canal com paginação
+  async getEpicsByChannel(
+    channel: string,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ epics: Content[], total: number }> {
     try {
-      const contents = Array.from(db.values()).filter(content => content.channelId === channel && content.isEpic);
-      contents.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-      return contents.map(row => ({
-        ...row,
-        tags: row.tags || [],
-        isEpic: true
-      }));
+      let contents = Array.from(db.values()).filter(
+        content => content.channelId === channel && content.isEpic
+      );
+      
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
+      
+      // Ordenar os épicos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+      
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return {
+        epics: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: true
+        })),
+        total
+      };
     } catch (error) {
       console.error(`Erro ao buscar épicos do canal ${channel}:`, error);
+      throw error;
+    }
+  },
+
+  // Obter conteúdos por projeto com paginação
+  async getContentsByProject(
+    projectId: string,
+    options?: { 
+      status?: string, 
+      page?: number, 
+      pageSize?: number 
+    }
+  ): Promise<{ contents: Content[], total: number }> {
+    try {
+      let contents = Array.from(db.values()).filter(content => content.projectId === projectId);
+      
+      // Filtrar por status, se fornecido
+      if (options?.status) {
+        contents = contents.filter(content => content.status === options.status);
+      }
+      
+      // Ordenar os conteúdos primeiramente pelo índice, depois pela data de vencimento
+      contents.sort((a, b) => {
+        // Primeiro, comparar pelo índice (se existir)
+        const indexA = a.index !== undefined ? a.index : Number.MAX_SAFE_INTEGER;
+        const indexB = b.index !== undefined ? b.index : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        
+        // Se os índices forem iguais, ordenar pela data
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      });
+      
+      // Calcular total antes de paginar
+      const total = contents.length;
+      
+      // Aplicar paginação, se fornecida
+      if (options?.page !== undefined && options?.pageSize !== undefined) {
+        const startIndex = options.page * options.pageSize;
+        contents = contents.slice(startIndex, startIndex + options.pageSize);
+      }
+      
+      return { 
+        contents: contents.map(row => ({
+          ...row,
+          tags: row.tags || [],
+          isEpic: row.isEpic || false
+        })),
+        total
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar conteúdos do projeto ${projectId}:`, error);
       throw error;
     }
   },
@@ -92,7 +223,11 @@ export const contentService = {
       
       // Obter o próximo índice para o status
       const contentsInStatus = Array.from(db.values()).filter(
-        item => item.status === content.status && item.channelId === content.channelId
+        item => item.status === content.status && 
+        (
+          (content.channelId && item.channelId === content.channelId) || 
+          (content.projectId && item.projectId === content.projectId)
+        )
       );
       const nextIndex = contentsInStatus.length;
       
@@ -102,10 +237,11 @@ export const contentService = {
         description: content.description || '',
         status: content.status,
         channelId: content.channelId,
+        projectId: content.projectId,
         tags: content.tags || [],
         dueDate: content.dueDate || now,
         isEpic: content.isEpic || false,
-        index: content.index || nextIndex,
+        index: content.index ?? nextIndex,
         createdAt: now,
         updatedAt: now
       };
@@ -126,15 +262,17 @@ export const contentService = {
       }
 
       const now = new Date().toISOString();
+      
+      // Garantir que todos os campos estejam corretamente mapeados
       const updates = {
         title: content.title ?? existingContent.title,
         description: content.description ?? existingContent.description,
         status: content.status ?? existingContent.status,
-        channel: content.channelId ?? existingContent.channel,
+        channelId: content.channelId ?? existingContent.channelId,
         tags: content.tags ?? existingContent.tags,
         dueDate: content.dueDate ?? existingContent.dueDate,
         isEpic: content.isEpic ?? existingContent.isEpic,
-        index: content.index ?? existingContent.index,
+        index: content.index !== undefined ? content.index : existingContent.index,
         updatedAt: now
       };
 
@@ -143,6 +281,7 @@ export const contentService = {
         ...updates
       };
 
+      console.log(`Atualizando conteúdo ${id} com índice: ${updatedContent.index}`);
       db.set(id, updatedContent);
 
       return updatedContent;
@@ -155,12 +294,28 @@ export const contentService = {
   // Atualizar os índices de múltiplos conteúdos
   async updateContentIndices(contentUpdates: { id: string, index: number }[]): Promise<boolean> {
     try {
+      console.log("Atualizando índices de conteúdos:", contentUpdates.map(u => `${u.id}: ${u.index}`).join(', '));
+      
       for (const update of contentUpdates) {
-        const existingContent = await this.getContentById(update.id);
+        const existingContent = db.get(update.id);
         if (existingContent) {
-          await this.updateContent(update.id, { index: update.index });
+          // Atualizar diretamente no banco de dados em memória para evitar leitura extra
+          existingContent.index = update.index;
+          existingContent.updatedAt = new Date().toISOString();
+          db.set(update.id, existingContent);
+          
+          console.log(`Índice do card ${existingContent.id} (${existingContent.title}) atualizado para ${update.index}`);
+        } else {
+          console.warn(`Card ${update.id} não encontrado para atualização de índice`);
         }
       }
+      
+      // Verificar se os índices foram atualizados corretamente
+      for (const update of contentUpdates) {
+        const content = db.get(update.id);
+        console.log(`Verificação: Card ${update.id} - índice atual: ${content?.index}`);
+      }
+      
       return true;
     } catch (error) {
       console.error('Erro ao atualizar índices:', error);
