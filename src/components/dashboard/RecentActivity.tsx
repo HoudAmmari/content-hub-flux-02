@@ -1,11 +1,11 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { CheckCircle2, Clock, Edit2, FileText, PlusCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { contentService } from "@/services/contentService";
 import { Content } from "@/models/types";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type ActivityType = {
@@ -28,14 +28,23 @@ export function RecentActivity() {
         const allContents = await contentService.getAllContents();
         
         // Ordenar por data de atualização (mais recentes primeiro)
-        allContents.sort((a, b) => 
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
+        allContents.sort((a, b) => {
+          // Verificar se updatedAt é válido
+          const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+          const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
+          
+          // Verificar se as datas são válidas
+          if (!isValid(dateA)) return 1;
+          if (!isValid(dateB)) return -1;
+          
+          return dateB.getTime() - dateA.getTime();
+        });
         
         // Transformar conteúdos em atividades
-        const recentActivities = allContents.slice(0, 5).map(content => {
-          return mapContentToActivity(content);
-        });
+        const recentActivities = allContents
+          .slice(0, 5)
+          .map(content => mapContentToActivity(content))
+          .filter(activity => activity !== null) as ActivityType[];
         
         setActivities(recentActivities);
       } catch (error) {
@@ -47,54 +56,73 @@ export function RecentActivity() {
   }, []);
   
   // Mapear conteúdo para formato de atividade
-  const mapContentToActivity = (content: Content): ActivityType => {
-    // Determinar tipo de atividade com base no status e datas
-    const createdAt = new Date(content.createdAt);
-    const updatedAt = new Date(content.updatedAt);
-    
-    let activityType: {
-      description: string;
-      icon: any;
-      color: string;
-    };
-    
-    // Se foi criado e atualizado na mesma hora, é uma criação
-    if (content.createdAt === content.updatedAt) {
-      activityType = {
-        description: "Criou um novo conteúdo",
-        icon: PlusCircle,
-        color: "bg-green-500"
+  const mapContentToActivity = (content: Content): ActivityType | null => {
+    try {
+      // Validar datas
+      const createdAt = content.createdAt ? new Date(content.createdAt) : null;
+      const updatedAt = content.updatedAt ? new Date(content.updatedAt) : null;
+      
+      if (!createdAt || !isValid(createdAt) || !updatedAt || !isValid(updatedAt)) {
+        console.log(`Ignorando conteúdo com datas inválidas: ${content.id}`);
+        return null;
+      }
+      
+      let activityType: {
+        description: string;
+        icon: any;
+        color: string;
       };
-    } 
-    // Se está completo, foi finalizado
-    else if (content.status === "completed") {
-      activityType = {
-        description: "Moveu para finalizado",
-        icon: CheckCircle2,
-        color: "bg-purple-500"
+      
+      // Se foi criado e atualizado na mesma hora, é uma criação
+      if (content.createdAt === content.updatedAt) {
+        activityType = {
+          description: "Criou um novo conteúdo",
+          icon: PlusCircle,
+          color: "bg-green-500"
+        };
+      } 
+      // Se está completo, foi finalizado
+      else if (content.status === "completed") {
+        activityType = {
+          description: "Moveu para finalizado",
+          icon: CheckCircle2,
+          color: "bg-purple-500"
+        };
+      } 
+      // Caso contrário, foi atualizado
+      else {
+        activityType = {
+          description: "Atualizou o conteúdo",
+          icon: Edit2,
+          color: "bg-blue-500"
+        };
+      }
+      
+      // Formatação segura de datas
+      let timeText;
+      try {
+        timeText = formatDistanceToNow(updatedAt, { 
+          addSuffix: true,
+          locale: ptBR 
+        });
+      } catch (e) {
+        console.log(`Erro ao formatar data para o conteúdo ${content.id}:`, e);
+        timeText = "data desconhecida";
+      }
+      
+      return {
+        id: content.id,
+        description: activityType.description,
+        title: content.title,
+        time: timeText,
+        icon: activityType.icon,
+        color: activityType.color,
+        timestamp: updatedAt
       };
-    } 
-    // Caso contrário, foi atualizado
-    else {
-      activityType = {
-        description: "Atualizou o conteúdo",
-        icon: Edit2,
-        color: "bg-blue-500"
-      };
+    } catch (error) {
+      console.error(`Erro ao mapear atividade para conteúdo ${content.id}:`, error);
+      return null;
     }
-    
-    return {
-      id: content.id,
-      description: activityType.description,
-      title: content.title,
-      time: formatDistanceToNow(updatedAt, { 
-        addSuffix: true,
-        locale: ptBR 
-      }),
-      icon: activityType.icon,
-      color: activityType.color,
-      timestamp: updatedAt
-    };
   };
 
   return (

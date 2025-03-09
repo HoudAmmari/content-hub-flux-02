@@ -1,108 +1,127 @@
 
 import React, { useState, useEffect } from "react";
-import { Clock, CalendarIcon, Instagram, Linkedin, Youtube, FileText } from "lucide-react";
+import { Check, Clock, CalendarIcon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { contentService } from "@/services/contentService";
-import { projectService } from "@/services/projectService";
-import { TaskDetailView } from "@/components/projects/TaskDetailView";
-import { Task } from "@/models/types";
-import { format, isToday, isYesterday, isTomorrow, isPast } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Task } from "@/models/types";
+import { taskService } from "@/services/taskService";
+import { contentService } from "@/services/contentService";
+import { useToast } from "@/hooks/use-toast";
 
-export function UpcomingTasks() {
+interface UpcomingTasksProps {
+  onTaskStatusChange?: () => void;
+}
+
+export function UpcomingTasks({ onTaskStatusChange }: UpcomingTasksProps) {
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
+  // Buscar tarefas pendentes
   useEffect(() => {
-    async function fetchTasks() {
+    const fetchTasks = async () => {
       try {
-        // Buscar tarefas pendentes de todos os projetos
-        const projects = await projectService.getAllProjects();
+        // Vamos primeiro tentar buscar tarefas com taskService
+        const tasksData = await taskService.getPendingTasks();
         
-        let allTasks: Task[] = [];
-        
-        for (const project of projects) {
-          const projectTasks = await projectService.getProjectTasks(project.id);
-          // Filtrar tarefas pendentes e em andamento
-          const pendingTasks = projectTasks.filter(
-            task => task.status === "pending" || task.status === "in_progress"
-          );
+        if (tasksData.length === 0) {
+          // Se não há tarefas no taskService, buscamos conteúdos pendentes
+          const contentsData = await contentService.getAllContents();
           
-          allTasks = [...allTasks, ...pendingTasks];
+          // Filtrar apenas conteúdos em progresso com data de vencimento
+          const pendingContents = contentsData
+            .filter(content => 
+              content.status === "in-progress" && content.dueDate
+            )
+            .slice(0, 4);
+          
+          setTasks(pendingContents as Task[]);
+        } else {
+          setTasks(tasksData);
         }
-        
-        // Ordenar por data de vencimento
-        allTasks.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-        
-        // Limitar a 4 tarefas
-        setTasks(allTasks.slice(0, 4));
       } catch (error) {
-        console.error("Erro ao buscar tarefas:", error);
+        console.error("Erro ao buscar tarefas pendentes:", error);
       }
-    }
+    };
     
     fetchTasks();
   }, []);
   
-  const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-    setIsTaskDetailOpen(true);
-  };
-
-  const getTaskIcon = (task: Task) => {
-    // Determinar o ícone com base no tipo de tarefa ou projeto
-    if (task.type === "content") {
-      return FileText;
-    } else if (task.type === "instagram" || task.channelId === "instagram") {
-      return Instagram;
-    } else if (task.type === "linkedin" || task.channelId === "linkedin") {
-      return Linkedin;
-    } else if (task.type === "youtube" || task.channelId === "youtube") {
-      return Youtube;
-    }
-    return FileText;
-  };
-
-  const getTaskColor = (task: Task) => {
-    // Definir cor com base no tipo ou canal
-    if (task.type === "instagram" || task.channelId === "instagram") {
-      return "bg-pink-500";
-    } else if (task.type === "linkedin" || task.channelId === "linkedin") {
-      return "bg-blue-700";
-    } else if (task.type === "youtube" || task.channelId === "youtube") {
-      return "bg-red-500";
-    } else if (task.status === "in_progress") {
-      return "bg-blue-500";
-    }
-    return "bg-indigo-500";
-  };
-
-  const formatDueDate = (dateString: string) => {
-    const date = new Date(dateString);
+  // Gerar dados visuais para cada tipo de tarefa/conteúdo
+  const getTaskVisuals = (task: Task) => {
+    // Definir ícone e cor com base no tipo
+    let icon = "📄";
+    let bgColor = "bg-gray-500";
     
-    if (isToday(date)) {
-      return "Hoje, " + format(date, "HH:mm");
-    } else if (isTomorrow(date)) {
-      return "Amanhã, " + format(date, "HH:mm");
-    } else if (isYesterday(date)) {
-      return "Ontem, " + format(date, "HH:mm");
-    } else {
-      return format(date, "EEE, HH:mm", { locale: ptBR });
+    if (task.type) {
+      if (task.type === "video" || 
+          task.channelId === "youtube" || 
+          task.channelId === "instagram") {
+        icon = "🎬";
+        bgColor = "bg-red-500";
+      } else if (task.type === "blog" || 
+                task.channelId === "blog") {
+        icon = "📝";
+        bgColor = "bg-blue-500";
+      } else if (task.type === "social" || 
+                task.channelId === "linkedin") {
+        icon = "📱";
+        bgColor = "bg-purple-500";
+      }
+    }
+    
+    return { icon, bgColor };
+  };
+  
+  // Formatação da data de vencimento
+  const formatDueDate = (dueDate: string) => {
+    try {
+      const date = new Date(dueDate);
+      return format(date, "d 'de' MMM", { locale: ptBR });
+    } catch (error) {
+      return "Data inválida";
     }
   };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Pendente";
-      case "in_progress":
-        return "Em andamento";
-      case "completed":
-        return "Concluído";
-      default:
-        return status;
+  
+  // Marcar tarefa como concluída
+  const handleCompleteTask = async (task: Task) => {
+    setIsUpdating(true);
+    try {
+      // Se a tarefa tiver ID, é um conteúdo
+      if (task.id) {
+        await contentService.updateContent(task.id, {
+          status: "completed",
+          updatedAt: new Date().toISOString()
+        });
+        
+        // Atualizar UI removendo a tarefa
+        setTasks(prev => prev.filter(t => t.id !== task.id));
+        
+        toast({
+          title: "Tarefa concluída",
+          description: `"${task.title}" foi marcada como concluída.`
+        });
+        
+        // Notificar o componente pai para atualizar o dashboard
+        if (onTaskStatusChange) {
+          onTaskStatusChange();
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao completar tarefa:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível completar a tarefa.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -110,45 +129,50 @@ export function UpcomingTasks() {
     <div className="space-y-4">
       {tasks.length === 0 ? (
         <div className="text-center py-4 text-muted-foreground">
-          Nenhuma tarefa pendente encontrada
+          Nenhuma tarefa pendente no momento
         </div>
       ) : (
-        tasks.map((task) => (
-          <div
-            key={task.id}
-            className="flex items-center justify-between rounded-md border p-3 transition-all hover:bg-accent/50 cursor-pointer"
-            onClick={() => handleTaskClick(task)}
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className={cn("h-9 w-9", getTaskColor(task))}>
-                <AvatarFallback className="text-white">
-                  {React.createElement(getTaskIcon(task), { className: "h-4 w-4" })}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{task.title}</p>
-                <div className="flex items-center text-xs text-muted-foreground gap-1">
-                  <Clock className="h-3 w-3" /> {formatDueDate(task.dueDate)}
-                  <span className="mx-1">•</span>
-                  <span>{getStatusText(task.status)}</span>
+        tasks.map((task) => {
+          const { icon, bgColor } = getTaskVisuals(task);
+          return (
+            <Card key={task.id} className="hover:bg-accent/50 transition-colors">
+              <CardContent className="p-4 flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <Avatar className={cn("h-9 w-9", bgColor)}>
+                    <AvatarFallback className="text-white">
+                      {icon}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-sm line-clamp-1">{task.title}</p>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <CalendarIcon className="h-3 w-3" />
+                      <span>{task.dueDate ? formatDueDate(task.dueDate) : "Sem data"}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground rounded-full bg-muted px-2 py-0.5">
-                {task.type || "Tarefa"}
-              </span>
-            </div>
-          </div>
-        ))
-      )}
-      
-      {selectedTask && (
-        <TaskDetailView
-          task={selectedTask}
-          open={isTaskDetailOpen}
-          onOpenChange={setIsTaskDetailOpen}
-        />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => handleCompleteTask(task)}
+                        disabled={isUpdating}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Marcar como concluído</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardContent>
+            </Card>
+          );
+        })
       )}
     </div>
   );

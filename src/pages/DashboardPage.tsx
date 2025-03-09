@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ContentMetrics } from "@/components/dashboard/ContentMetrics";
 import { Overview } from "@/components/dashboard/Overview";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -14,9 +14,18 @@ import { Content } from "@/models/types";
 import { differenceInDays, subDays, subMonths, format } from "date-fns";
 
 const DashboardPage = () => {
+  // Variável para forçar a atualização dos dados
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Função para forçar atualização dos dados
+  const refreshData = useCallback(() => {
+    console.log("Forçando atualização dos dados do dashboard...");
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
   // Buscar todos os conteúdos com refetch para garantir dados atualizados
   const { data: contents = [], refetch: refetchContents } = useQuery({
-    queryKey: ['dashboard-contents'],
+    queryKey: ['dashboard-contents', refreshTrigger],
     queryFn: async () => {
       console.log("Buscando conteúdos para o dashboard...");
       const allContents = await contentService.getAllContents();
@@ -27,7 +36,7 @@ const DashboardPage = () => {
 
   // Buscar dados sobre projetos
   const { data: projects = [] } = useQuery({
-    queryKey: ['dashboard-projects'],
+    queryKey: ['dashboard-projects', refreshTrigger],
     queryFn: async () => {
       return await projectService.getAllProjects();
     }
@@ -62,8 +71,8 @@ const DashboardPage = () => {
     const twoMonthsAgo = subMonths(now, 2);
     
     // Conteúdos por tipo
-    const videos = contents.filter(c => c.type === "video" || c.channelId === "youtube" || c.channelId === "instagram");
-    const blogPosts = contents.filter(c => c.type === "blog" || c.channelId === "blog");
+    const videos = contents.filter(c => (c.type === "video" || c.channelId === "youtube" || c.channelId === "instagram"));
+    const blogPosts = contents.filter(c => (c.type === "blog" || c.channelId === "blog"));
     const linkedinPosts = contents.filter(c => c.channelId === "linkedin");
     
     console.log(`Vídeos: ${videos.length}, Blog: ${blogPosts.length}, LinkedIn: ${linkedinPosts.length}`);
@@ -289,7 +298,7 @@ const DashboardPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UpcomingTasks />
+            <UpcomingTasks onTaskStatusChange={refreshData} />
           </CardContent>
         </Card>
 

@@ -6,13 +6,17 @@ import contentMock from './mock/content-mock';
 // Simulação de um banco de dados em memória
 const db = new Map<string, Content>();
 
-// Dados iniciais para simulação - carregar apenas se o banco estiver vazio
-if (db.size === 0) {
+// Variável para controlar a inicialização única
+let dbInitialized = false;
+
+// Dados iniciais para simulação - carregar apenas se o banco estiver vazio E não tiver sido inicializado antes
+if (db.size === 0 && !dbInitialized) {
   console.log("Inicializando banco de dados com dados mock");
   for (const content of contentMock) {
     db.set(content.id, content);
   }
   console.log(`Total de conteúdos carregados no banco: ${db.size}`);
+  dbInitialized = true;
 }
 
 // Serviço para gerenciar operações CRUD de conteúdos
@@ -21,7 +25,7 @@ export const contentService = {
   async getAllContents(): Promise<Content[]> {
     try {
       const result = Array.from(db.values());
-      console.log(`getAllContents: Retornando ${result.length} conteúdos`);
+      console.log(`getAllContents: Retornando ${result.length} conteúdos (tamanho atual do banco: ${db.size})`);
       return result.map(row => ({
         ...row,
         tags: row.tags || [],
@@ -335,7 +339,11 @@ export const contentService = {
   // Excluir um conteúdo
   async deleteContent(id: string): Promise<boolean> {
     try {
+      console.log(`Excluindo conteúdo ${id}...`);
+      console.log(`Tamanho do banco antes da exclusão: ${db.size}`);
       const result = db.delete(id);
+      console.log(`Conteúdo ${id} excluído: ${result}`);
+      console.log(`Tamanho do banco após exclusão: ${db.size}`);
       return result;
     } catch (error) {
       console.error(`Erro ao excluir conteúdo ${id}:`, error);
