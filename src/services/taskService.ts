@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 // Simulação de um banco de dados em memória
 const db = new Map<string, Task>();
 
+// Flag para controlar a inicialização
+let dbInitialized = false;
+
 // Dados iniciais para simulação
 const initialTasks: Task[] = [
   {
@@ -15,7 +18,9 @@ const initialTasks: Task[] = [
     status: 'in_progress',
     dueDate: '2025-03-15',
     createdAt: '2025-03-01T10:00:00Z',
-    updatedAt: '2025-03-02T14:30:00Z'
+    updatedAt: '2025-03-02T14:30:00Z',
+    type: 'design',
+    channelId: 'design'
   },
   {
     id: '2',
@@ -25,7 +30,9 @@ const initialTasks: Task[] = [
     status: 'pending',
     dueDate: '2025-03-20',
     createdAt: '2025-03-01T10:30:00Z',
-    updatedAt: '2025-03-01T10:30:00Z'
+    updatedAt: '2025-03-01T10:30:00Z',
+    type: 'development',
+    channelId: 'auth'
   },
   {
     id: '3',
@@ -35,14 +42,26 @@ const initialTasks: Task[] = [
     status: 'completed',
     dueDate: '2025-03-05',
     createdAt: '2025-02-25T08:00:00Z',
-    updatedAt: '2025-03-05T16:45:00Z'
+    updatedAt: '2025-03-05T16:45:00Z',
+    type: 'database',
+    channelId: 'database'
   },
 ];
 
-// Inicializar o banco de dados em memória
-initialTasks.forEach(task => {
-  db.set(task.id, task);
-});
+// Inicializar o banco de dados em memória apenas se ainda não foi inicializado
+const initializeDb = () => {
+  if (!dbInitialized) {
+    console.log("Inicializando banco de dados de tarefas...");
+    initialTasks.forEach(task => {
+      db.set(task.id, task);
+    });
+    dbInitialized = true;
+    console.log(`Banco de dados inicializado com ${db.size} tarefas.`);
+  }
+};
+
+// Inicializar na primeira importação
+initializeDb();
 
 // Serviço para gerenciar operações CRUD de tarefas
 export const taskService = {
@@ -89,6 +108,8 @@ export const taskService = {
         description: task.description,
         status: task.status,
         dueDate: task.dueDate,
+        type: task.type || 'default',
+        channelId: task.channelId || '',
         createdAt: now,
         updatedAt: now
       };
@@ -125,7 +146,10 @@ export const taskService = {
   // Excluir uma tarefa
   async deleteTask(id: string): Promise<boolean> {
     try {
-      return db.delete(id);
+      console.log(`Excluindo tarefa com ID: ${id}`);
+      const deleted = db.delete(id);
+      console.log(`Exclusão bem-sucedida: ${deleted}, Tarefas restantes: ${db.size}`);
+      return deleted;
     } catch (error) {
       console.error(`Erro ao excluir tarefa ${id}:`, error);
       throw error;
@@ -147,6 +171,21 @@ export const taskService = {
       });
     } catch (error) {
       console.error('Erro ao buscar tarefas próximas:', error);
+      throw error;
+    }
+  },
+
+  // Obter tarefas pendentes (implementando método que faltava)
+  async getPendingTasks(): Promise<Task[]> {
+    try {
+      console.log("Buscando tarefas pendentes...");
+      const pendingTasks = Array.from(db.values()).filter(task => 
+        task.status === 'pending' || task.status === 'in_progress'
+      );
+      console.log(`Encontradas ${pendingTasks.length} tarefas pendentes.`);
+      return pendingTasks;
+    } catch (error) {
+      console.error('Erro ao buscar tarefas pendentes:', error);
       throw error;
     }
   }
