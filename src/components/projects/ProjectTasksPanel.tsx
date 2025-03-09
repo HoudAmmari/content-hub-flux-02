@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Task, Project } from "@/models/types";
 import { projectService } from "@/services/projectService";
 import { useToast } from "@/hooks/use-toast";
+import { TaskDetailView } from "./TaskDetailView";
 
 interface ProjectTasksPanelProps {
   projectId: string;
@@ -36,6 +36,8 @@ export function ProjectTasksPanel({
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date | undefined>(undefined);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
 
   const handleAddTask = async () => {
     if (!newTaskTitle || !newTaskDueDate) {
@@ -175,6 +177,11 @@ export function ProjectTasksPanel({
     }
   };
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskDetailOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -266,7 +273,11 @@ export function ProjectTasksPanel({
             </div>
           ) : (
             tasks.map((task) => (
-              <Card key={task.id} className="hover:bg-accent/50 transition-colors">
+              <Card 
+                key={task.id} 
+                className="hover:bg-accent/50 transition-colors cursor-pointer" 
+                onClick={() => handleTaskClick(task)}
+              >
                 <CardContent className="p-4 flex items-start justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -275,10 +286,13 @@ export function ProjectTasksPanel({
                           "h-5 w-5 cursor-pointer", 
                           task.status === "completed" ? "text-green-500" : "text-muted-foreground"
                         )}
-                        onClick={() => handleUpdateTaskStatus(
-                          task.id, 
-                          task.status === "completed" ? "pending" : "completed"
-                        )}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita que o clique no ícone também abra o popup
+                          handleUpdateTaskStatus(
+                            task.id, 
+                            task.status === "completed" ? "pending" : "completed"
+                          );
+                        }}
                       />
                       <h4 className="font-medium">{task.title}</h4>
                     </div>
@@ -301,25 +315,39 @@ export function ProjectTasksPanel({
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={(e) => e.stopPropagation()} // Evita que o clique no menu também abra o popup
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem 
-                        onClick={() => handleUpdateTaskStatus(task.id, "pending")}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita que o clique no item também abra o popup
+                          handleUpdateTaskStatus(task.id, "pending");
+                        }}
                         disabled={task.status === "pending"}
                       >
                         Marcar como Pendente
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleUpdateTaskStatus(task.id, "in_progress")}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita que o clique no item também abra o popup
+                          handleUpdateTaskStatus(task.id, "in_progress");
+                        }}
                         disabled={task.status === "in_progress"}
                       >
                         Marcar em Andamento
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleUpdateTaskStatus(task.id, "completed")}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita que o clique no item também abra o popup
+                          handleUpdateTaskStatus(task.id, "completed");
+                        }}
                         disabled={task.status === "completed"}
                       >
                         Marcar como Concluída
@@ -327,7 +355,10 @@ export function ProjectTasksPanel({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         className="text-destructive"
-                        onClick={() => handleDeleteTask(task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita que o clique no item também abra o popup
+                          handleDeleteTask(task.id);
+                        }}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Excluir</span>
@@ -340,6 +371,14 @@ export function ProjectTasksPanel({
           )}
         </div>
       </CardContent>
+      
+      {selectedTask && (
+        <TaskDetailView
+          task={selectedTask}
+          open={isTaskDetailOpen}
+          onOpenChange={setIsTaskDetailOpen}
+        />
+      )}
     </Card>
   );
 }
