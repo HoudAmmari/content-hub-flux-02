@@ -14,11 +14,13 @@ import { Content } from "@/models/types";
 import { differenceInDays, subDays, subMonths, format } from "date-fns";
 
 const DashboardPage = () => {
-  // Buscar todos os conteúdos
-  const { data: contents = [] } = useQuery({
+  // Buscar todos os conteúdos com refetch para garantir dados atualizados
+  const { data: contents = [], refetch: refetchContents } = useQuery({
     queryKey: ['dashboard-contents'],
     queryFn: async () => {
+      console.log("Buscando conteúdos para o dashboard...");
       const allContents = await contentService.getAllContents();
+      console.log(`Total de conteúdos encontrados: ${allContents.length}`);
       return allContents;
     }
   });
@@ -50,6 +52,8 @@ const DashboardPage = () => {
 
   // Calcular estatísticas com base nos conteúdos
   useEffect(() => {
+    console.log(`Calculando estatísticas com ${contents.length} conteúdos...`);
+    
     if (contents.length === 0) return;
 
     const now = new Date();
@@ -62,21 +66,23 @@ const DashboardPage = () => {
     const blogPosts = contents.filter(c => c.type === "blog" || c.channelId === "blog");
     const linkedinPosts = contents.filter(c => c.channelId === "linkedin");
     
+    console.log(`Vídeos: ${videos.length}, Blog: ${blogPosts.length}, LinkedIn: ${linkedinPosts.length}`);
+    
     // Conteúdos novos nesta semana
-    const newContents = contents.filter(c => new Date(c.createdAt) >= oneWeekAgo);
-    const newVideos = videos.filter(c => new Date(c.createdAt) >= oneWeekAgo);
-    const newBlogPosts = blogPosts.filter(c => new Date(c.createdAt) >= oneWeekAgo);
+    const newContents = contents.filter(c => new Date(c.createdAt || '') >= oneWeekAgo);
+    const newVideos = videos.filter(c => new Date(c.createdAt || '') >= oneWeekAgo);
+    const newBlogPosts = blogPosts.filter(c => new Date(c.createdAt || '') >= oneWeekAgo);
 
     // Calcular tempo médio de produção (em dias) para conteúdos finalizados no último mês
     const completedLastMonth = contents.filter(c => 
       c.status === 'completed' && 
-      new Date(c.updatedAt) >= oneMonthAgo
+      new Date(c.updatedAt || '') >= oneMonthAgo
     );
     
     const completedTwoMonthsAgo = contents.filter(c => 
       c.status === 'completed' && 
-      new Date(c.updatedAt) >= twoMonthsAgo &&
-      new Date(c.updatedAt) < oneMonthAgo
+      new Date(c.updatedAt || '') >= twoMonthsAgo &&
+      new Date(c.updatedAt || '') < oneMonthAgo
     );
 
     // Calcular tempo médio (diferença entre criação e conclusão)
@@ -84,15 +90,19 @@ const DashboardPage = () => {
     let totalDaysPrevMonth = 0;
     
     completedLastMonth.forEach(content => {
-      const createdAt = new Date(content.createdAt);
-      const updatedAt = new Date(content.updatedAt);
-      totalDays += differenceInDays(updatedAt, createdAt);
+      if (content.createdAt && content.updatedAt) {
+        const createdAt = new Date(content.createdAt);
+        const updatedAt = new Date(content.updatedAt);
+        totalDays += differenceInDays(updatedAt, createdAt);
+      }
     });
     
     completedTwoMonthsAgo.forEach(content => {
-      const createdAt = new Date(content.createdAt);
-      const updatedAt = new Date(content.updatedAt);
-      totalDaysPrevMonth += differenceInDays(updatedAt, createdAt);
+      if (content.createdAt && content.updatedAt) {
+        const createdAt = new Date(content.createdAt);
+        const updatedAt = new Date(content.updatedAt);
+        totalDaysPrevMonth += differenceInDays(updatedAt, createdAt);
+      }
     });
     
     const averageDays = completedLastMonth.length > 0 
@@ -120,6 +130,8 @@ const DashboardPage = () => {
       difference: difference
     });
     
+    console.log(`Estatísticas calculadas: ${contents.length} conteúdos totais`);
+    
   }, [contents]);
 
   // Agrupar conteúdos por mês para o gráfico Overview
@@ -137,9 +149,11 @@ const DashboardPage = () => {
     
     // Contar conteúdos por mês
     contents.forEach(content => {
-      const date = new Date(content.createdAt);
-      const month = months[date.getMonth()];
-      monthsMap.set(month, monthsMap.get(month) + 1);
+      if (content.createdAt) {
+        const date = new Date(content.createdAt);
+        const month = months[date.getMonth()];
+        monthsMap.set(month, monthsMap.get(month) + 1);
+      }
     });
     
     // Converter mapa para array do formato esperado pelo gráfico

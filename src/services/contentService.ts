@@ -1,3 +1,4 @@
+
 import { Content } from '../models/types';
 import { v4 as uuidv4 } from 'uuid';
 import contentMock from './mock/content-mock';
@@ -5,11 +6,14 @@ import contentMock from './mock/content-mock';
 // Simulação de um banco de dados em memória
 const db = new Map<string, Content>();
 
-// Dados iniciais para simulação
-for (const content of contentMock) {
-  db.set(content.id, content);
+// Dados iniciais para simulação - carregar apenas se o banco estiver vazio
+if (db.size === 0) {
+  console.log("Inicializando banco de dados com dados mock");
+  for (const content of contentMock) {
+    db.set(content.id, content);
+  }
+  console.log(`Total de conteúdos carregados no banco: ${db.size}`);
 }
-
 
 // Serviço para gerenciar operações CRUD de conteúdos
 export const contentService = {
@@ -17,6 +21,7 @@ export const contentService = {
   async getAllContents(): Promise<Content[]> {
     try {
       const result = Array.from(db.values());
+      console.log(`getAllContents: Retornando ${result.length} conteúdos`);
       return result.map(row => ({
         ...row,
         tags: row.tags || [],
@@ -243,9 +248,11 @@ export const contentService = {
         isEpic: content.isEpic || false,
         index: content.index ?? nextIndex,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        type: content.type || 'default'
       };
       db.set(id, newContent);
+      console.log(`Novo conteúdo criado: ${id}, título: ${newContent.title}`);
       return newContent;
     } catch (error) {
       console.error('Erro ao criar conteúdo:', error);
@@ -258,6 +265,7 @@ export const contentService = {
     try {
       const existingContent = await this.getContentById(id);
       if (!existingContent) {
+        console.log(`Conteúdo ${id} não encontrado para atualização`);
         return null;
       }
 
@@ -273,7 +281,8 @@ export const contentService = {
         dueDate: content.dueDate ?? existingContent.dueDate,
         isEpic: content.isEpic ?? existingContent.isEpic,
         index: content.index !== undefined ? content.index : existingContent.index,
-        updatedAt: now
+        updatedAt: now,
+        type: content.type ?? existingContent.type
       };
 
       const updatedContent: Content = {
@@ -281,7 +290,7 @@ export const contentService = {
         ...updates
       };
 
-      console.log(`Atualizando conteúdo ${id} com índice: ${updatedContent.index}`);
+      console.log(`Atualizando conteúdo ${id}: "${updatedContent.title}"`);
       db.set(id, updatedContent);
 
       return updatedContent;
