@@ -10,7 +10,8 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle 
+  DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 
 interface TaskDetailViewProps {
@@ -51,6 +52,7 @@ export function TaskDetailView({ task, open, onOpenChange }: TaskDetailViewProps
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>
+          <DialogDescription>Detalhes da tarefa</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">

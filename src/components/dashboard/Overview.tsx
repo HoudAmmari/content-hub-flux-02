@@ -1,61 +1,33 @@
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
-const data = [
-  {
-    name: "Jan",
-    total: 8,
-  },
-  {
-    name: "Fev",
-    total: 10,
-  },
-  {
-    name: "Mar",
-    total: 12,
-  },
-  {
-    name: "Abr",
-    total: 9,
-  },
-  {
-    name: "Mai",
-    total: 11,
-  },
-  {
-    name: "Jun",
-    total: 15,
-  },
-  {
-    name: "Jul",
-    total: 13,
-  },
-  {
-    name: "Ago",
-    total: 16,
-  },
-  {
-    name: "Set",
-    total: 14,
-  },
-  {
-    name: "Out",
-    total: 18,
-  },
-  {
-    name: "Nov",
-    total: 16,
-  },
-  {
-    name: "Dez",
-    total: 19,
-  },
-];
+interface OverviewProps {
+  data?: Array<{
+    name: string;
+    total: number;
+  }>;
+}
 
-export function Overview() {
+export function Overview({ data = [] }: OverviewProps) {
+  // Se não houver dados fornecidos, use os dados de exemplo
+  const chartData = data.length ? data : [
+    { name: "Jan", total: 0 },
+    { name: "Fev", total: 0 },
+    { name: "Mar", total: 0 },
+    { name: "Abr", total: 0 },
+    { name: "Mai", total: 0 },
+    { name: "Jun", total: 0 },
+    { name: "Jul", total: 0 },
+    { name: "Ago", total: 0 },
+    { name: "Set", total: 0 },
+    { name: "Out", total: 0 },
+    { name: "Nov", total: 0 },
+    { name: "Dez", total: 0 },
+  ];
+
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data}>
+      <BarChart data={chartData}>
         <XAxis
           dataKey="name"
           stroke="#888888"
