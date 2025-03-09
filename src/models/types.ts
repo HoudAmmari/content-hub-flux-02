@@ -6,7 +6,7 @@ export interface Content {
   title: string;
   description: string;
   status: string;
-  channelId?: string; // Alterado para ser opcional
+  channelId?: string;
   projectId?: string;
   tags: string[];
   content?: string;
@@ -15,6 +15,7 @@ export interface Content {
   index?: number;
   createdAt?: string;
   updatedAt?: string;
+  type?: string; // Adicionado tipo para categorização de conteúdo
 }
 
 export interface Project {
@@ -40,6 +41,8 @@ export interface Task {
   dueDate: string;
   createdAt?: string;
   updatedAt?: string;
+  type?: string; // Adicionado tipo para categorização de tarefa
+  channelId?: string; // Adicionado para associar tarefas a canais
 }
 
 export interface Channel {
