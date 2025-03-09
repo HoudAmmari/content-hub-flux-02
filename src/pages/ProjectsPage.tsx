@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,105 +16,100 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { NewProjectDialog } from "@/components/projects/NewProjectDialog";
 import { ProjectDetails } from "@/components/projects/ProjectDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Project } from "@/models/types";
-import { projectService } from "@/services/projectService";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  progress: number;
+  status: "em_andamento" | "concluido" | "pausado";
+  deadline: string;
+  tasks: number;
+  completedTasks: number;
+}
+
+// Sample data
+const mockProjects: Project[] = [
+  {
+    id: "1",
+    title: "Criar E-book: Guia de React",
+    description: "Um guia completo sobre React para iniciantes",
+    progress: 65,
+    status: "em_andamento",
+    deadline: "2023-07-15",
+    tasks: 12,
+    completedTasks: 8
+  },
+  {
+    id: "2",
+    title: "Curso de TypeScript",
+    description: "Curso introdutório sobre TypeScript",
+    progress: 30,
+    status: "em_andamento",
+    deadline: "2023-08-20",
+    tasks: 18,
+    completedTasks: 5
+  },
+  {
+    id: "3",
+    title: "Série de vídeos: CSS Avançado",
+    description: "Uma série de vídeos explorando técnicas avançadas de CSS",
+    progress: 100,
+    status: "concluido",
+    deadline: "2023-05-10",
+    tasks: 8,
+    completedTasks: 8
+  },
+  {
+    id: "4",
+    title: "Newsletter semanal",
+    description: "Criar uma newsletter com dicas de desenvolvimento",
+    progress: 10,
+    status: "em_andamento",
+    deadline: "2023-09-01",
+    tasks: 16,
+    completedTasks: 2
+  },
+  {
+    id: "5",
+    title: "Workshop de NextJS",
+    description: "Preparar e ministrar um workshop online sobre NextJS",
+    progress: 45,
+    status: "em_andamento",
+    deadline: "2023-07-30",
+    tasks: 20,
+    completedTasks: 9
+  },
+  {
+    id: "6",
+    title: "Podcast: Carreira em Tech",
+    description: "Série de podcasts sobre carreira em tecnologia",
+    progress: 0,
+    status: "pausado",
+    deadline: "2023-10-15",
+    tasks: 15,
+    completedTasks: 0
+  }
+];
 
 export function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState(mockProjects);
   const [openNewProject, setOpenNewProject] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      setIsLoading(true);
-      const data = await projectService.getAllProjects();
-      setProjects(data);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os projetos.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleProjectCreated = (newProject: Project) => {
-    setProjects(prev => [...prev, newProject]);
-    toast({
-      title: "Projeto criado",
-      description: "O projeto foi criado com sucesso.",
-    });
-  };
-
-  const handleProjectUpdated = (updatedProject: Project) => {
-    setProjects(prev => 
-      prev.map(project => project.id === updatedProject.id ? updatedProject : project)
-    );
-    
-    if (selectedProject?.id === updatedProject.id) {
-      setSelectedProject(updatedProject);
-    }
-    
-    toast({
-      title: "Projeto atualizado",
-      description: "O projeto foi atualizado com sucesso.",
-    });
-  };
-
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      await projectService.deleteProject(projectId);
-      setProjects(prev => prev.filter(project => project.id !== projectId));
-      
-      if (selectedProject?.id === projectId) {
-        setSelectedProject(null);
-      }
-      
-      toast({
-        title: "Projeto excluído",
-        description: "O projeto foi excluído com sucesso.",
-      });
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o projeto.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const navigateToProjectDetails = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
-  };
-
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "in_progress":
+      case "em_andamento":
         return <Badge className="bg-blue-500">Em andamento</Badge>;
-      case "completed":
+      case "concluido":
         return <Badge className="bg-green-500">Concluído</Badge>;
-      case "paused":
+      case "pausado":
         return <Badge className="bg-yellow-500">Pausado</Badge>;
-      case "canceled":
-        return <Badge className="bg-red-500">Cancelado</Badge>;
       default:
         return null;
     }
   };
-
+  
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('pt-BR', { 
@@ -123,82 +118,7 @@ export function ProjectsPage() {
       year: 'numeric' 
     });
   };
-
-  const renderProjectCard = (project: Project) => (
-    <Card key={project.id} className="hover:shadow-md transition-all">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-base">{project.title}</CardTitle>
-            <CardDescription className="line-clamp-2 mt-1">{project.description}</CardDescription>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigateToProjectDetails(project.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Ver Detalhes</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedProject({...project, isEditing: true})}>
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Editar</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive"
-                onClick={() => handleDeleteProject(project.id)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Excluir</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Progresso</span>
-              <span>{project.progress}%</span>
-            </div>
-            <Progress value={project.progress} className="h-2" />
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Layers className="h-4 w-4" />
-              <span>{project.completedTasks}/{project.tasks} tarefas</span>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>{formatDate(project.deadline)}</span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="pt-2">
-        <div className="flex items-center justify-between w-full">
-          {getStatusBadge(project.status)}
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigateToProjectDetails(project.id)}
-          >
-            Ver Detalhes
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -218,39 +138,196 @@ export function ProjectsPage() {
         
         <TabsContent value="all" className="mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map(renderProjectCard)}
+            {projects.map((project) => (
+              <Card key={project.id} className="hover:shadow-md transition-all">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-base">{project.title}</CardTitle>
+                      <CardDescription className="line-clamp-2 mt-1">{project.description}</CardDescription>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelectedProject(project)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          <span>Ver Detalhes</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Editar</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Excluir</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pb-2">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Progresso</span>
+                        <span>{project.progress}%</span>
+                      </div>
+                      <Progress value={project.progress} className="h-2" />
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Layers className="h-4 w-4" />
+                        <span>{project.completedTasks}/{project.tasks} tarefas</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(project.deadline)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="pt-2">
+                  <div className="flex items-center justify-between w-full">
+                    {getStatusBadge(project.status)}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedProject(project)}
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         </TabsContent>
         
         <TabsContent value="in_progress" className="mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects
-              .filter(project => project.status === "in_progress")
-              .map(renderProjectCard)}
+              .filter(project => project.status === "em_andamento")
+              .map((project) => (
+                <Card key={project.id} className="hover:shadow-md transition-all">
+                  {/* Same card content as above */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{project.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Progresso</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <Progress value={project.progress} className="h-2" />
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Layers className="h-4 w-4" />
+                          <span>{project.completedTasks}/{project.tasks} tarefas</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{formatDate(project.deadline)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-2">
+                    <div className="flex items-center justify-between w-full">
+                      {getStatusBadge(project.status)}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedProject(project)}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+            ))}
           </div>
         </TabsContent>
         
         <TabsContent value="completed" className="mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects
-              .filter(project => project.status === "completed")
-              .map(renderProjectCard)}
+              .filter(project => project.status === "concluido")
+              .map((project) => (
+                <Card key={project.id} className="hover:shadow-md transition-all">
+                  {/* Same card content as above */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{project.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Progresso</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <Progress value={project.progress} className="h-2" />
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Layers className="h-4 w-4" />
+                          <span>{project.completedTasks}/{project.tasks} tarefas</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{formatDate(project.deadline)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-2">
+                    <div className="flex items-center justify-between w-full">
+                      {getStatusBadge(project.status)}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedProject(project)}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
       
-      <NewProjectDialog 
-        open={openNewProject} 
-        onOpenChange={setOpenNewProject} 
-        onProjectCreated={handleProjectCreated}
-      />
+      {/* New Project Dialog */}
+      <NewProjectDialog open={openNewProject} onOpenChange={setOpenNewProject} />
       
+      {/* Project Details */}
       {selectedProject && (
         <ProjectDetails 
           project={selectedProject} 
           open={!!selectedProject} 
-          onOpenChange={(open) => !open && setSelectedProject(null)}
-          onProjectUpdated={handleProjectUpdated}
+          onOpenChange={(open) => !open && setSelectedProject(null)} 
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 
-import { ReactNode, memo } from "react";
+import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -12,17 +12,9 @@ interface KanbanColumnProps {
   children: ReactNode;
   droppableId: string;
   type?: string;
-  totalCount?: number;
 }
 
-export function KanbanColumn({ 
-  status, 
-  title, 
-  children, 
-  droppableId, 
-  type = "DEFAULT",
-  totalCount
-}: KanbanColumnProps) {
+export function KanbanColumn({ status, title, children, droppableId, type = "DEFAULT" }: KanbanColumnProps) {
   const { t } = useTranslation();
 
   const getColumnColor = (id: string) => {
@@ -40,14 +32,6 @@ export function KanbanColumn({
     }
   };
 
-  // Calcula a contagem real dos cards filhos
-  const childCount = Array.isArray(children) 
-    ? children.filter(child => child !== null && child !== undefined).length 
-    : (children ? 1 : 0);
-
-  // Usa o totalCount se fornecido, senão usa a contagem local
-  const displayCount = totalCount !== undefined ? totalCount : childCount;
-
   return (
     <div className="flex flex-col h-full min-h-[500px]">
       <Card
@@ -62,7 +46,7 @@ export function KanbanColumn({
               {title}
             </CardTitle>
             <div className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-              {displayCount}
+              {Array.isArray(children) ? children.length : (children ? 1 : 0)}
             </div>
           </div>
         </CardHeader>
@@ -78,7 +62,7 @@ export function KanbanColumn({
             >
               {children}
               {provided.placeholder}
-              {childCount === 0 && (
+              {Array.isArray(children) && children.length === 0 && (
                 <div className="text-xs text-center py-4 text-muted-foreground">
                   <p>{t("kanban.dragToMove")}</p>
                 </div>

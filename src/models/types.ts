@@ -1,4 +1,3 @@
-
 // Tipos para os modelos de dados
 
 export interface Content {
@@ -6,8 +5,7 @@ export interface Content {
   title: string;
   description: string;
   status: string;
-  channelId?: string; // Alterado para ser opcional
-  projectId?: string;
+  channelId: string;
   tags: string[];
   content?: string;
   dueDate: string;
@@ -28,7 +26,6 @@ export interface Project {
   completedTasks: number;
   createdAt?: string;
   updatedAt?: string;
-  isEditing?: boolean;
 }
 
 export interface Task {
